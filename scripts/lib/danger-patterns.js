@@ -20,7 +20,32 @@ function dangerousRm(command) {
   })
 }
 
+// Commands that print or copy file contents. Deny rules cover only `cat *.env*`
+// and similar spellings; this catches the rest (grep, sed, type, cp, paths).
+const FILE_READERS = /^(?:cat|head|tail|less|more|bat|type|read|gc|Get-Content|Select-String|sls|sed|awk|grep|rg|strings|xxd|od|base64|source|cp|Copy-Item)$/i
+const SAFE_ENV_SUFFIXES = new Set(['example', 'sample', 'template', 'dist'])
+
+function isRealEnvPath(token) {
+  const name = token.replace(/^["']|["']$/g, '').split(/[\\/]/).pop()
+  const match = /^\.env(?:\.([\w-]+))?$/.exec(name)
+  return Boolean(match) && !SAFE_ENV_SUFFIXES.has((match[1] || '').toLowerCase())
+}
+
+function readsEnvFile(command) {
+  return command.split(/&&|\|\||[;|\n]/).some((segment) => {
+    let [cmd, ...args] = segment.trim().split(/\s+/)
+    // rtk wraps readers: `rtk read .env`, `rtk grep KEY .env`.
+    if (/^rtk(?:\.exe)?$/i.test(cmd || '')) [cmd, ...args] = args
+    return FILE_READERS.test(cmd || '') && args.some(isRealEnvPath)
+  })
+}
+
 const RULES = [
+  {
+    name: 'reading a real .env file',
+    test: readsEnvFile,
+    hint: 'Real .env files hold secrets. Read .env.example instead, or ask the user for the variable names.',
+  },
   {
     name: 'force push',
     test: (c) => /\bgit\b[^\n;&|]*\bpush\b[^\n;&|]*(?:\s--force(?:-with-lease|-if-includes)?\b|\s-[a-zA-Z]*f[a-zA-Z]*\b|\s\+\S)/.test(c),

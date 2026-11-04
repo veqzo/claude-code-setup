@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# SessionStart hook: syncs ~/.claude with github.com/Yuutokata/claude-config
+# SessionStart hook: syncs ~/.claude with github.com/veqzo/claude-config
 # Design goals: never block a session, never prompt for credentials,
 # stay silent unless something actually changed.
 
@@ -7,8 +7,8 @@ set -u
 export GIT_TERMINAL_PROMPT=0
 
 DIR="$HOME/.claude"
-SSH_URL="git@github.com:Yuutokata/claude-config.git"
-HTTPS_URL="https://github.com/Yuutokata/claude-config.git"
+SSH_URL="git@github.com:veqzo/claude-config.git"
+HTTPS_URL="https://github.com/veqzo/claude-config.git"
 BRANCH="master"
 LOG="$DIR/sync-hook.log"
 
@@ -37,9 +37,25 @@ if [ ! -d "$DIR/.git" ]; then
 fi
 
 # --- Every later start: fast-forward to origin ---
+# Only the sync branch follows origin; a review/feature branch is left alone.
+current="$(git -C "$DIR" rev-parse --abbrev-ref HEAD 2>/dev/null || echo '?')"
+if [ "$current" != "$BRANCH" ]; then
+  log "sync skipped: on branch $current, not $BRANCH"
+  exit 0
+fi
+
+# Cloud sessions only: fall back to the read-only CLAUDE_CONFIG_TOKEN when the
+# GitHub proxy does not serve this repo. Local clients never take this branch.
 before="$(git -C "$DIR" rev-parse --short HEAD 2>/dev/null || echo '?')"
-git -C "$DIR" fetch --quiet origin "$BRANCH" 2>>"$LOG" || { log "fetch failed (offline?)"; exit 0; }
-git -C "$DIR" pull --ff-only --autostash --quiet 2>>"$LOG" || { log "pull failed (diverged?)"; exit 0; }
+if [ "${CLAUDE_CODE_REMOTE:-}" = "true" ] && [ -n "${CLAUDE_CONFIG_TOKEN:-}" ] && \
+   ! git -C "$DIR" fetch --quiet origin "$BRANCH" 2>>"$LOG"; then
+  header="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$CLAUDE_CONFIG_TOKEN" | base64 -w0)"
+  git -C "$DIR" -c "http.https://github.com/.extraheader=$header" fetch --quiet origin "$BRANCH" 2>>"$LOG" || { log "fetch failed (token)"; exit 0; }
+  git -C "$DIR" merge --ff-only --autostash --quiet "origin/$BRANCH" 2>>"$LOG" || { log "merge failed (diverged?)"; exit 0; }
+else
+  git -C "$DIR" fetch --quiet origin "$BRANCH" 2>>"$LOG" || { log "fetch failed (offline?)"; exit 0; }
+  git -C "$DIR" pull --ff-only --autostash --quiet 2>>"$LOG" || { log "pull failed (diverged?)"; exit 0; }
+fi
 after="$(git -C "$DIR" rev-parse --short HEAD 2>/dev/null || echo '?')"
 
 [ "$before" != "$after" ] && echo "claude-config synced: $before -> $after"

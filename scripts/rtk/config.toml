@@ -1,0 +1,13 @@
+# Copy of ~/.claude/scripts/rtk/config.toml. The hook is wired by
+# ~/.claude/scripts/hooks/rtk-rewrite.js, not by `rtk init -g`.
+
+[telemetry]
+enabled = false
+
+[display]
+emoji = false
+
+[hooks]
+# gh output is already filtered with --json/--jq; rewriting it would corrupt the JSON.
+exclude_commands = ["gh"]
+suppress_hook_warning = true

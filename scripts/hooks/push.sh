@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # SessionEnd hook: commits local config changes in ~/.claude and pushes
-# them back to github.com/Yuutokata/claude-config
+# them back to github.com/veqzo/claude-config
 # Never blocks, never prompts, no-ops when nothing changed.
 
 set -u
@@ -13,9 +13,25 @@ LOG="$DIR/sync-hook.log"
 log() { printf '%s %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$*" >> "$LOG" 2>/dev/null || true; }
 
 command -v git >/dev/null 2>&1 || exit 0
+[ "${CLAUDE_CODE_REMOTE:-}" = "true" ] && exit 0   # cloud session: pull only, never push
 [ -d "$DIR/.git" ] || exit 0   # repo not adopted on this machine yet
 
 cd "$DIR" 2>/dev/null || exit 0
+
+# Auto-sync only on the sync branch. On a review/feature branch, commits are
+# made by hand; auto-committing there (and rebasing it onto master) mixes
+# unrelated changes into that branch.
+current="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo '?')"
+if [ "$current" != "$BRANCH" ]; then
+  log "push skipped: on branch $current, not $BRANCH"
+  exit 0
+fi
+
+# Another git process (sync.sh, config-watch fetch, a second session) holds the lock.
+if [ -e "$DIR/.git/index.lock" ]; then
+  log "push skipped: index.lock present"
+  exit 0
+fi
 
 # Stage everything the .gitignore allows.
 # The whitelist .gitignore is what keeps credentials/local state out.
