@@ -33,12 +33,15 @@ The rules live in [`scripts/lib/danger-patterns.js`](../scripts/lib/danger-patte
 
 | Rule | Catches | Hint sent to Claude |
 |---|---|---|
+| Reading a real `.env` file | `cat`, `head`, `tail`, `grep`, `sed`, `type`, `Get-Content`, `cp` and similar on `.env` or `.env.local`, also as `rtk read .env` or `rtk grep KEY .env`. `.env.example`, `.env.sample` and `.env.template` stay readable, and commands that only name the file (`git check-ignore .env`) pass | Read `.env.example` instead, or ask the user for the variable names |
 | Force push | `--force`, `--force-with-lease`, `--force-if-includes`, short flags containing `f`, `+refspec` | Ask the user to run it themselves |
 | Recursive delete of a root-like path | `rm -r` or `-rf` aimed at `/`, `~`, `$HOME`, `.`, `..` or a drive root | Delete a specific subdirectory instead |
 | Recursive `Remove-Item` | `-Recurse` on a drive root or the home folder, in PowerShell | Delete a specific subdirectory instead |
 | Download piped into a shell | `curl`, `wget`, `iwr`, `irm` and friends piped into `sh`, `bash`, `zsh` or `iex` | Download the script, read it, then run it |
 | Destructive Docker cleanup | `docker system prune` with `-a`, `--all` or `--volumes`, and `docker volume rm` or `prune` | This deletes volumes, so ask the user |
 | Dropping a MongoDB database | `dropDatabase` | Ask the user to run it themselves |
+
+The rules have tests in [`scripts/lib/danger-patterns.test.js`](../scripts/lib/danger-patterns.test.js), including the cases that must stay allowed: `node --test scripts/lib/danger-patterns.test.js`.
 
 The hint matters as much as the block. Claude reads it and usually picks a safer command or asks me, instead of retrying the same thing in a different spelling.
 
@@ -87,7 +90,8 @@ The guard fails open: if it breaks, the command runs. That is the right trade fo
 - **It matches text, not intent.** If a blocked pattern merely appears in a command, even inside an `echo` or a commit message, the guard blocks it. I hit this while writing the tests for this very repo.
 - **It is not a sandbox.** Indirection such as variables, `sh -c "..."`, base64 or a script that runs the command for you gets past text matching. For real isolation use the operating system's sandbox.
 - **The secret scan is best effort.** It matches known token shapes and obvious assignments. It does not measure entropy, so an unusual secret format can slip through, and it only sees the lines being added. A secret that is already in your history needs rotating, not scanning.
-- **It only covers Bash and PowerShell calls.** That is where `git commit` happens, which is the case it was built for.
+- **It only covers Bash and PowerShell calls.** That is where `git commit` happens, which is the case it was built for. The `Read` tool is covered by `Read(**/.env)` style deny rules in `settings.json` instead.
+- **rtk is a second spelling.** The guard sees the command as Claude wrote it, before `rtk-rewrite.js` runs. Claude can also write `rtk ...` itself, so the `.env` rule matches `rtk read` and `rtk grep`, and the destructive deny rules in `settings.json` are mirrored with an `rtk ` prefix.
 
 ## 🔧 Changing it
 

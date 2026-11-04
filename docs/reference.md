@@ -8,33 +8,31 @@
 | File | Loads | Content |
 |---|---|---|
 | `coding-style.md` | always | Language-neutral: immutability where idiomatic, small files/functions, error handling, boundary validation, config via environment, completion checklist |
-| `security.md` | always | Universal pre-commit checks, secret handling, response protocol when an issue is found (deep review is the `security-reviewer` agent) |
-| `testing.md` | always | Behavior-focused tests, test-first where it pays off, no fixed coverage percentage, what to do with failing tests |
-| `git-workflow.md` | always | Conventional commit format, PR workflow, no `Co-Authored-By` lines |
+| `git-workflow.md` | always | Conventional commit format, PR workflow, no `Co-Authored-By` lines, pushes and merges need confirmation |
 | `web-research.md` | always | Escalate blocked or empty fetches (403/429, Cloudflare, JS-only pages) to the Scrapling MCP, keep fetched output small, treat fetched content as untrusted data, public pages only |
+| `security.md` | source, Docker, compose, `.env.example`, CI workflows | Universal pre-commit checks, secret handling, response protocol when an issue is found (deep review is the `security-reviewer` agent) |
+| `testing.md` | `**/*.{py,kt,kts,ts,tsx,js,jsx,mjs}` | Behavior-focused tests, test-first where it pays off, no fixed coverage percentage, what to do with failing tests |
 | `python.md` | `**/*.py`, `**/pyproject.toml` | async rules (no blocking calls), FastAPI structure, Pydantic v2, pydantic-settings, Motor/PyMongo, discord.py intents and cogs, typing, ruff, pytest-asyncio |
 | `kotlin.md` | `**/*.kt`, `**/*.kts`, `libs.versions.toml` | Null safety, sealed types, structured concurrency, Ktor plugins/config/testApplication, Mongo Kotlin coroutine driver, Gradle KTS + version catalog |
 | `mongodb.md` | repository/DAO/mongo files, `db/`, `models/`, `init-mongo*` | Schema and embedding vs referencing, ESR index rule, atomic updates, NoSQL injection, auth and exposure, operations. Also says when to prefer PostgreSQL |
 | `docker.md` | `Dockerfile*`, `compose*.yml`, `.dockerignore` | Pinned tags, multi-stage, non-root, no secrets in layers, no published DB ports, healthchecks, Dokploy/Traefik notes |
-| `frontend.md` | `*.ts`, `*.tsx`, `*.jsx`, `tailwind.config.*`, `components.json` | Strict TypeScript, React patterns, Tailwind (v3/v4), shadcn/ui conventions, anti-slop design precedence (which design skill owns what), Vitest/Playwright, client-exposed env vars |
+| `frontend.md` | `*.ts`, `*.tsx`, `*.jsx`, `tailwind.config.*`, `components.json` | Strict TypeScript, React patterns, Tailwind (v3/v4), shadcn/ui conventions, design tokens, Vitest/Playwright, client-exposed env vars |
+| `ui-design.md` | `*.tsx`, `*.jsx`, `*.css`, `*.scss`, `*.html`, Kotlin/JS and Ktor web/template paths | Anti-slop rules: read `DESIGN.md`/`PRODUCT.md` first, tokens only, a ban list of AI tells, kotlinx.html and Kotlin/JS styling, `impeccable` for critique (never its per-edit hook), screenshots at 1440 and 390 px before calling anything polished |
 
-Dokploy adds the basic Traefik labels itself when a domain is configured in its Domains tab, so the rules tell Claude **not** to add them to compose files.
+`security.md` and `testing.md` used to load in every session; scoping them to source files keeps them out of sessions that only touch docs or config. Dokploy adds the basic Traefik labels itself when a domain is configured in its Domains tab, so the rules tell Claude **not** to add them to compose files.
 
 ## 🤖 Agents
 
 | Agent | Model | Tools | Use for |
 |---|---|---|---|
-| `planner` | opus | read-only | Plans for larger features/refactors; waits for confirmation, never writes code |
-| `architect` | opus | read-only | Design decisions, trade-offs, ADRs, MongoDB vs relational, concurrency, single-VPS topology |
 | `code-reviewer` | sonnet | read + Bash | Review after larger changes: Python, Kotlin, Docker and frontend checks, severity levels |
-| `security-reviewer` | sonnet | read/write + Bash | App checks plus an **infrastructure checklist**: Dockerfile, Compose, Traefik/Dokploy, MongoDB auth/exposure, Phase secrets, Discord bot |
+| `security-reviewer` | sonnet | read + Bash (no Write/Edit) | App checks plus an **infrastructure checklist**: Dockerfile, Compose, Traefik/Dokploy, MongoDB auth/exposure, Phase secrets, Discord bot. Reports findings, never edits |
 | `tdd-guide` | sonnet | read/write + Bash | Failing test first, minimal implementation, refactor, where a test is worthwhile |
-| `build-error-resolver` | sonnet | read/write + Bash | Minimal fixes for build/Gradle/type/Docker build errors |
 | `refactor-cleaner` | sonnet | read/write + Bash | Dead-code cleanup with per-stack tools (vulture, detekt, knip), tests around each batch |
-| `e2e-runner` | sonnet | read/write + Bash | Playwright flows for the React frontend only |
-| `doc-updater` | haiku | read/write + Bash | Keeps README/docs in sync with code, opt-in codemaps |
 
-Model strategy: Opus only where reasoning dominates (planning, architecture), Haiku for documentation, Sonnet for the rest. Only aliases (`sonnet`, `opus`, `haiku`) are used, never pinned model IDs, so the setup does not go stale.
+Planning, architecture, build fixes, E2E and docs no longer have their own agents. Plan mode and the main session cover them, and every agent description costs context in every session.
+
+Model strategy: Sonnet for the main session and all subagents, Haiku for pure file search or listing. Only aliases (`sonnet`, `opus`, `haiku`) are used, never pinned model IDs, so the setup does not go stale.
 
 **Sonnet works, Opus judges:** for security-critical changes (auth, secrets, exposed infrastructure) spawn the reviewer with an override: `security-reviewer` with `model: opus`. For whole sessions, `/model opusplan` uses Opus in plan mode and Sonnet for execution.
 
@@ -42,19 +40,10 @@ Model strategy: Opus only where reasoning dominates (planning, architecture), Ha
 
 | Command | Model-invocable | Purpose |
 |---|---|---|
-| `/plan` | yes | Restate requirements, assess risks, plan, **wait for confirmation** before any code |
 | `/verify [quick\|full\|pre-commit\|pre-pr]` | yes | Build, types, lint, tests, secrets and git checks for the detected stack |
-| `/build-fix` | yes | Fix build/type errors one at a time until green |
-| `/test-coverage` | yes | Coverage for the detected stack, find untested risky paths, write meaningful tests |
-| `/e2e` | yes | Playwright E2E for the frontend via `e2e-runner` |
-| `/refactor-clean` | manual only | Dead code and unused dependency removal |
-| `/update-docs` | manual only | Sync docs with sources of truth |
-| `/orchestrate` | manual only | Sequential multi-agent workflow (feature, bugfix, refactor, security, custom) |
-| `/checkpoint` | manual only | Named checkpoints via commit or stash plus log |
-| `/eval` | manual only | Eval-driven development |
-| `/learn` | manual only | Save a reusable pattern as `~/.claude/skills/<name>/SKILL.md` after confirmation |
 
-Commands marked "manual only" use `disable-model-invocation: true`, so their descriptions cost no always-loaded tokens. Toolchain detection (`pyproject.toml`/`uv.lock`, `build.gradle.kts`, `package.json` + lockfile, compose files) replaces any hardcoded package manager.
+The other ten commands (`/plan`, `/build-fix`, `/e2e`, `/checkpoint`, `/orchestrate` and so on) were dropped: plan mode, skills and the built-in `/code-review` cover them. Toolchain detection (`pyproject.toml`/`uv.lock`, `build.gradle.kts`, `package.json` + lockfile, compose files) replaces any hardcoded package manager.
+
 ## 🧰 Skills
 
 This repository contains no skill files, because the skills I run are other people's work. [`skills/README.md`](../skills/README.md) lists them with their upstreams and licenses. On my own machines `skills/` is synced from a private copy.
@@ -67,9 +56,10 @@ All hooks are registered in `settings.json`. **`disableAllHooks` is the master s
 
 | Event | Matcher | Script | What it does |
 |---|---|---|---|
-| SessionStart | `startup\|resume` | `sync.sh` | Pulls the config repo (`git pull --ff-only --autostash`) |
-| SessionEnd | all | `push.sh` | Runs `secret-gate.js`, then commits changes and pushes to `origin/master` |
-| PreToolUse | `Bash\|PowerShell` | `bash-guard.js` | 1) blocks dangerous commands, 2) scans changes for secrets before `git commit` |
+| SessionStart | `startup\|resume` | `sync.sh` | Pulls the config repo (`git pull --ff-only --autostash`), only on `master` |
+| SessionEnd | all | `push.sh` | Only on `master`: runs `secret-gate.js`, then commits changes and pushes to `origin/master` |
+| PreToolUse | `Bash\|PowerShell` | `bash-guard.js` | 1) blocks dangerous commands and shell reads of real `.env` files, 2) scans changes for secrets before `git commit` |
+| PreToolUse | `Bash` | `rtk-rewrite.js` | Lets [rtk](https://github.com/rtk-ai/rtk) rewrite the command for compact output; skips commands that match an `ask` rule |
 | PostToolUse | `Edit\|Write` | `format-on-edit.js` | Formats the edited file with the project's own formatter |
 | Notification | `permission_prompt\|idle_prompt\|elicitation_dialog` | `notify.js` | Plays a sound (`afplay` on macOS, `Media.SoundPlayer` on Windows) |
 
@@ -84,6 +74,9 @@ Exit code `2` blocks the call and sends stderr to Claude. Any internal error exi
 - downloads piped into a shell: `curl ... | sh`, `irm ... | iex`
 - `docker system prune -a/--volumes`, `docker volume rm/prune`
 - MongoDB `dropDatabase`
+- shell reads of real `.env` files: `cat`, `head`, `grep`, `sed`, `type`, `Get-Content`, `cp` and others, also wrapped as `rtk read .env` or `rtk grep KEY .env`. `.env.example`, `.env.sample`, `.env.template` and commands that only name the file (`git check-ignore .env`) stay allowed
+
+The rules live in `scripts/lib/danger-patterns.js` and have tests: `node --test scripts/lib/danger-patterns.test.js`.
 
 **Secret scan before `git commit`:** scans the staged diff, or, for `git add ... && git commit` and `commit -a`, the working tree plus untracked files. It detects AWS keys, GitHub tokens, Anthropic/OpenAI-style keys, Slack and Google keys, Discord bot tokens, Phase service tokens, private key blocks, connection strings with credentials, hardcoded `password/token/api_key = "..."` assignments, and committed `.env`, `*.pem`, `*.key`, SSH key files (`.env.example` is allowed). Reports show file, line and pattern name, **never the value**. An intentional test fixture can carry the comment `secret-scan:allow`.
 
@@ -97,12 +90,21 @@ Runs only when the project clearly uses the tool, never uses the network (no `np
 | `.ts .tsx .js .jsx .mjs .cjs .css` | local `prettier` | `node_modules/prettier` exists |
 | `.kt .kts` | `ktlint -F` | build file mentions ktlint, and `ktlint` is an executable on PATH |
 
+### `rtk-rewrite.js`
+
+A thin wrapper around `rtk hook claude`. rtk rewrites commands such as `git status` or `cargo test` to their `rtk` form, which prints a much shorter result and saves context. The wrapper adds two things:
+
+- **Ask rules keep their prompt.** If the command matches a `Bash(...)` ask rule in the user or project settings, it is passed through unchanged. Otherwise `git stash drop` would become `rtk git stash drop`, no longer match `Bash(git stash drop*)`, and run without confirmation.
+- **Fail open, quietly.** Missing rtk, a timeout (8 s) or any error exits `0` and the command runs as written. Telemetry is switched off through the environment.
+
+rtk itself leaves denied commands alone and only returns `allow` for commands that were already allowed. Every git, docker, curl and wget deny rule is mirrored with an `rtk ` prefix anyway, and `rtk read`/`rtk grep` on `.env*` files is denied. The config in `scripts/rtk/config.toml` turns telemetry off and excludes `gh`, whose `--json`/`--jq` output is already small.
+
 ### Sync hooks
 
 `sync.sh` and `push.sh` are what keep the machines in step. They log to `sync-hook.log` and always exit `0`.
 
-- `sync.sh`: if `~/.claude/.git` is missing, clones the repo (SSH, then HTTPS) and checks it out; otherwise `fetch` and `pull --ff-only --autostash` on `master`.
-- `push.sh`: `git add -A` (bounded by the `.gitignore` whitelist), then `secret-gate.js`, commit `auto-sync from <host> (<date>)`, push; on failure `pull --rebase --autostash` and one retry.
+- `sync.sh`: if `~/.claude/.git` is missing, clones the repo (SSH, then HTTPS) and checks it out; otherwise `fetch` and `pull --ff-only --autostash` on `master`. On any other branch it does nothing, so a review branch is never rebased or fast-forwarded under you.
+- `push.sh`: exits at once on any branch other than `master`, while another git process holds `index.lock`, and in cloud sessions. Otherwise `git add -A` (bounded by the `.gitignore` whitelist), then `secret-gate.js`, commit `auto-sync from <host> (<date>)`, push; on failure `pull --rebase --autostash` and one retry.
 - `secret-gate.js`: scans the staged diff with the same scanner as `bash-guard.js`. On a finding, or on any internal error, it exits `1`; `push.sh` then unstages everything and skips that sync, and `sync-hook.log` records file, line and pattern (never the value). Unlike `bash-guard.js` it fails closed, because the auto-sync commit would otherwise bypass the scan.
 
 `push.sh` commits without a review step, which is why the whitelist and the secret scan matter.
@@ -111,11 +113,12 @@ Runs only when the project clearly uses the tool, never uses the network (no `np
 
 ## 🔐 Permissions
 
-Evaluation order is **deny, then ask, then allow**; an `allow` cannot override a `deny` or an `ask`. Rules exist in pairs for the `Bash` and `PowerShell` tools (same pattern shape). Counts: 142 allow, 103 deny, 118 ask.
+Evaluation order is **deny, then ask, then allow**; an `allow` cannot override a `deny` or an `ask`. Rules exist in pairs for the `Bash` and `PowerShell` tools (same pattern shape). Counts: 142 allow, 122 deny, 49 ask.
 
 **Deny (blocked):**
 - Reading or editing secrets: `.env`, `.env.local/.dev/.production/...`, `secrets/**`, `*.pem`, `*.key`, `*.p12`, `id_rsa*`, `~/.ssh`, `~/.aws`, `~/.azure`, `~/.kube`, `~/.gnupg`, gcloud and `gh` configs, `~/.phase`, `~/.docker/config.json`, `~/.npmrc`, `~/.netrc`, `~/.claude/.credentials.json`
-- Shell reads of env files (`cat`, `type`, `Get-Content ... .env*`)
+- Shell reads of env files (`cat`, `type`, `Get-Content ... .env*`, `rtk read`, `rtk grep`)
+- The same destructive git, docker, curl and wget patterns with an `rtk ` prefix
 - Force pushes, `git clean -fdx`, root-like `rm -rf`, `mkfs`, `dd`, `chmod -R 777`
 - Pipe-to-shell (including bare `sh`/`bash`/`zsh` and `Invoke-Expression`)
 - `docker volume rm/prune`, `docker system prune -a/--volumes`, `dropDatabase`, `gh repo delete`, `gh api ... DELETE`
@@ -138,16 +141,18 @@ Broad allows such as `python *`, `node *`, `npx *` and `gh:*` are deliberately a
 
 ## 🔌 Plugins and MCP
 
-Two plugins are enabled in `enabledPlugins`:
+Enabled in `enabledPlugins`, all from `anthropics/claude-plugins-official`:
 
 | Plugin | Why |
 |---|---|
-| `superpowers` | Process skills for debugging, brainstorming and planning |
-| `kotlin-lsp` | Kotlin language server, which costs no context |
+| `kotlin-lsp`, `pyright-lsp`, `typescript-lsp` | Language servers for the three stacks; they cost no context |
+| `context7` | Current library docs instead of answers from memory |
+| `chrome-devtools-mcp` | Screenshots and debugging of local dev servers, used by `rules/ui-design.md` |
+| `session-report` | Usage report for a session |
 
-The rest are listed with `false` on purpose. Several duplicate the agents and commands in this repo and collide with them by name (`code-reviewer`, `refactor-clean`), and `security-guidance` runs Python hooks on every edit and prompt. I also keep the `github` plugin off, since I use the `gh` CLI for everything GitHub.
+Plugin skills I never trigger by description are set to `"name-only"` under `skillOverrides`, so only their names reach the context. Third-party marketplaces from the old setup (several agent and design collections) were removed: they duplicated the agents in this repo and loaded many descriptions into every session.
 
-Budget goal: fewer than 10 active MCP servers and fewer than 80 tools. Other MCP sources: `scrapling` (user scope, a Scrapling MCP server you host yourself; fallback for blocked pages, triggered by `rules/web-research.md`) and the claude.ai connectors (Notion, Claude Docs). Tool search keeps MCP schemas deferred.
+Budget goal: fewer than 10 active MCP servers and fewer than 80 tools. Other MCP sources: `scrapling` (user scope, a Scrapling MCP server you host yourself; fallback for blocked pages, triggered by `rules/web-research.md`) and the claude.ai connectors. Tool search keeps MCP schemas deferred.
 
 ## 🎛️ Models and settings
 
@@ -155,7 +160,12 @@ Budget goal: fewer than 10 active MCP servers and fewer than 80 tools. Other MCP
 |---|---|---|
 | `model` | `sonnet` | Cheap default for daily work |
 | `env.CLAUDE_AUTOCOMPACT_PCT_OVERRIDE` | `75` | Compact before the window gets crowded |
+| `env.CLAUDE_CODE_AUTO_COMPACT_WINDOW` | `200k` | Compaction is measured against 200k tokens, even on models with a larger window |
+| `env.MDB_MCP_READ_ONLY` | `true` | The MongoDB MCP can read, never write |
+| `env.RTK_*`, `env.IMPECCABLE_*` | `1` | Telemetry and update checks off for rtk and impeccable |
+| `skillOverrides` | `name-only` | Rarely used plugin skills show only their name |
 | `permissions.defaultMode` | `auto` | A classifier handles routine actions; the deny and ask rules still apply |
+| `autoMode.environment` | `$defaults` + context | Tells the classifier which GitHub account, secret manager, deploy target and MCP servers are trusted, and which remote targets are sensitive |
 | `attribution` | `commit: ""`, `pr: ""` | No `Co-Authored-By` or "Generated with" lines (the schema wants strings, not booleans) |
 | `statusLine` | `npx -y ccstatusline@2.2.30` | Version pinned instead of `@latest` (supply-chain risk) |
 | `disableAllHooks` | `false` | Master switch. Set it to `true` to turn every hook off at once |
@@ -172,7 +182,7 @@ Never synced (stay local): `.credentials.json`, `history.jsonl`, `projects/`, `s
 
 A new top-level directory is **ignored by default**. If a new file does not show up in `git status`, add it to the whitelist (the `!dir/` and `!dir/**` pair, parent first). Check with `git check-ignore -v <path>`.
 
-Line endings: `* text=auto`, `*.sh text eol=lf`. Keep `.sh` files on LF.
+Line endings: `* text=auto eol=lf`, `*.sh text eol=lf`, `*.cmd`/`*.bat` on CRLF, `*.png` binary.
 
 Do not add keys with secrets to the `env` block of `settings.json`, because that file is synced.
 
@@ -182,11 +192,13 @@ Do not add keys with secrets to the `env` block of `settings.json`, because that
 2. Set `git config --global user.name` and `user.email`, and make sure `git push` to the repo works (credential manager or SSH key).
 3. Clone the config repo into `~/.claude` (or let `sync.sh` bootstrap it).
 4. Install the tools the hooks use if you want formatting: `ruff`, `ktlint`, and `prettier` inside each frontend project.
+   Optional: install [rtk](https://github.com/rtk-ai/rtk) (`winget install rtk-ai.rtk` or `brew install rtk`) and copy `scripts/rtk/config.toml` to rtk's config directory (`%APPDATA%\rtk\` on Windows, `~/Library/Application Support/rtk/` on macOS). Do not run `rtk init -g`: it edits `settings.json` and `CLAUDE.md` on its own. Restart the terminal so the new PATH is picked up.
 5. Sign in to the plugin marketplaces; plugins install themselves from `enabledPlugins`.
 6. Test the hooks before enabling them:
    ```
    echo '{"tool_input":{"command":"git push --force"}}' | node ~/.claude/scripts/hooks/bash-guard.js; echo $?   # must print 2
    node ~/.claude/scripts/hooks/notify.js                                                                         # must play a sound
+   node --test ~/.claude/scripts/lib/danger-patterns.test.js                                                      # all tests pass
    ```
 7. Set `disableAllHooks` to `false`.
 8. Register the Scrapling MCP once per machine. User-scope servers live in `~/.claude.json`, which is not synced. Check the URL path, transport and auth of your own server first, and pass any token through an environment variable or your secret manager, never inline in a committed file:

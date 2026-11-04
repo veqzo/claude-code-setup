@@ -1,3 +1,8 @@
+---
+paths:
+  - "**/*.{py,kt,kts,ts,tsx,js,jsx,mjs}"
+---
+
 # Testing
 
 ## Principles

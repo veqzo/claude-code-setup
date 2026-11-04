@@ -15,28 +15,8 @@
 - Keep outputs small: always filter with `--json` and `--jq`, e.g.
   gh pr list --json number,title,state --jq '.[] | "\(.number): \(.title)"'
 - For endpoints without a dedicated command: use `gh api <endpoint>`.
-- No `Co-Authored-By` or "Generated with" lines in commits or PRs.
 
-# Session Naming (auto-rename)
+## Working style
 
-## Expected behavior
-
-1. **Early rename**: Once the session's main subject is clear (after 2-3 exchanges),
-   run `/rename` with a short, descriptive title (max 50 chars)
-2. **End-of-session update**: If scope shifted significantly, propose a re-rename before closing
-
-## Title format
-
-`[action] [subject]`. Examples:
-
-- "fix whitepaper PDF build"
-- "add auth middleware + tests"
-- "refactor hook system"
-- "update CC releases v2.2.0"
-
-## Rules
-
-- Max 50 characters, no "Session:" prefix, no date
-- Action verb first (fix, add, refactor, update, research, debug...)
-- Multi-topic: dominant subject only, not an exhaustive list
-- Do NOT ask for confirmation on early rename (just do it)
+- Subagents default to `model: sonnet`; use `haiku` for pure file search or listing.
+- For non-trivial changes, plan first (plan mode) and verify (build, tests, `/verify`) before claiming done.

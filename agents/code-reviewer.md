@@ -116,7 +116,7 @@ File: app/db.py:12
 Issue: Connection string with password committed in source
 Fix: Read it from an environment variable via typed settings
 
-client = AsyncIOMotorClient("mongodb://admin:secret@db:27017")  # Bad (secret-scan:allow)
+client = AsyncIOMotorClient("mongodb://admin:secret@db:27017")  # Bad
 client = AsyncIOMotorClient(settings.mongodb_uri)                # Good
 ```
 
