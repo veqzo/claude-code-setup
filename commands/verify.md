@@ -24,7 +24,7 @@ Detect from files in the project root (monorepos: check each subproject director
 
 ## Steps (in order)
 
-1. **Build**: compile/build. If it fails, report errors and STOP (suggest `/build-fix`).
+1. **Build**: compile/build. If it fails, report errors and STOP; fix them one at a time, then re-run.
 2. **Types**: mypy/pyright, Kotlin compile, `tsc`. Report errors as file:line.
 3. **Lint**: ruff, ktlint/detekt, eslint. Report warnings and errors.
 4. **Tests**: run the full suite. Report passed/failed counts, plus coverage only if already configured.

@@ -1,7 +1,7 @@
 ---
 name: security-reviewer
 description: Use after writing code that handles input, auth, secrets or infra, and for Docker/Compose/Traefik/Dokploy/MongoDB/Phase security checks. Finds secrets, injection, authz gaps, and misconfigurations.
-tools: Read, Write, Edit, Bash, Grep, Glob
+tools: Read, Grep, Glob, Bash
 model: sonnet
 ---
 
