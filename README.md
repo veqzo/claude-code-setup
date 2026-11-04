@@ -53,23 +53,29 @@ This repository is a cleaned copy of that private one, without my skills and wit
 | | |
 |---|---|
 | 📌 `CLAUDE.md` | Short global preferences: stack, tooling, how I want GitHub handled. |
-| 📏 `rules/` | Ten rules. Five general ones (including web-research escalation) are always loaded; five are per-stack (Python, Kotlin, MongoDB, Docker, frontend) and load only when a matching file is touched. |
-| 🤖 `agents/` | Nine subagents: planner, architect, code and security reviewers, a test-first guide, and a few for builds, cleanup, E2E and docs. |
-| ⌨️ `commands/` | Eleven slash commands, such as `/plan`, `/verify` and `/build-fix`. |
-| 🪝 `scripts/` | Node hooks that guard commands, scan for secrets, format edited files and keep the config synced. |
+| 📏 `rules/` | Eleven rules. Three general ones (coding style, git workflow, web-research escalation) are always loaded; eight are scoped with `paths:` (Python, Kotlin, MongoDB, Docker, frontend, UI design, security, testing) and load only when a matching file is touched. |
+| 🤖 `agents/` | Four subagents: code reviewer, read-only security reviewer, test-first guide and cleanup. Planning happens in plan mode, not in an agent. |
+| ⌨️ `commands/` | One slash command, `/verify`: build, types, lint, tests, secret scan and git status for the detected stack. |
+| 🪝 `scripts/` | Node hooks that guard commands, block reads of real `.env` files, scan for secrets, compress command output with rtk, format edited files and keep the config synced. |
 | ⚙️ `settings.json` | Permissions (deny, ask, allow), hook wiring, plugins and model settings. |
 
 ## 💡 Ideas worth borrowing
 
-**Keep the always-loaded part small.** `CLAUDE.md` and the five general rules come to about 2.3k tokens. Anything stack-specific lives in a rule with a `paths:` list in its frontmatter, so the Python rules cost nothing while I'm working on a Kotlin service.
+**Keep the always-loaded part small.** `CLAUDE.md` and the three general rules come to about 1.5k tokens. Anything stack-specific lives in a rule with a `paths:` list in its frontmatter, so the Python rules cost nothing while I'm working on a Kotlin service.
 
-**Write hooks in Node, without a shell.** The same scripts run on Windows and macOS. `bash-guard.js` blocks the usual disasters (force pushes, recursive deletes of root-like paths, `curl | sh`, dropping a database) and scans the staged changes for secrets before every `git commit`. It reports file, line and pattern, never the value. [How it works](docs/bash-guard.md).
+**Write hooks in Node, without a shell.** The same scripts run on Windows and macOS. `bash-guard.js` blocks the usual disasters (force pushes, recursive deletes of root-like paths, `curl | sh`, dropping a database) and scans the staged changes for secrets before every `git commit`. It also blocks shell reads of real `.env` files (`cat`, `grep`, `Get-Content`, `cp`, and the same through `rtk read`), while `.env.example` stays readable. It reports file, line and pattern, never the value. [How it works](docs/bash-guard.md).
 
 **Make auto-sync fail closed.** Because the session-end commit would bypass the guard above, `secret-gate.js` runs the same scanner first. If it finds something, or breaks, the sync is skipped and nothing leaves the machine.
 
 **Order permissions as deny, ask, allow.** Destructive and outward-facing commands ask first, routine safe ones run without a prompt, and secrets are off limits. Pattern matching on command text is not a security boundary, which is why the hook above exists as a second layer.
 
-**Pick the model per job.** Opus for planning and architecture, Haiku for documentation, Sonnet for everything else, using aliases instead of pinned model IDs so the setup does not go stale.
+**Compress command output, but keep the prompts.** `rtk-rewrite.js` hands Bash calls to [rtk](https://github.com/rtk-ai/rtk), which rewrites `git status` to `rtk git status` and returns much shorter output. Commands that match an `ask` rule are left alone, because `rtk git stash drop` would no longer match `Bash(git stash drop*)` and the confirmation would silently disappear. Every git, docker and curl deny rule is mirrored with an `rtk ` prefix, and rtk telemetry is off (`scripts/rtk/config.toml`). Without rtk installed the hook does nothing.
+
+**Give UI work a ban list.** `rules/ui-design.md` loads only for frontend files and lists the usual AI tells (gradient text, nested cards, emoji icons, indigo-to-pink everything). It points to the [impeccable](https://github.com/pbakaus/impeccable) skill for critique and to real screenshots at two widths, and keeps impeccable's per-edit hook off.
+
+**Sync only on the sync branch.** `sync.sh` and `push.sh` do nothing unless the config repo is on `master`, so a review branch never gets auto-commits or a rebase in the middle of hand-made changes.
+
+**Pick the model per job.** Sonnet is the default for the main session and every subagent, Haiku for pure file search, and Opus only for the security reviewer on changes that touch auth, secrets or exposed infra. The security reviewer is read-only (no Write or Edit tools). Aliases instead of pinned model IDs keep the setup from going stale.
 
 ## 🔌 How the hooks fit together
 
@@ -78,6 +84,7 @@ flowchart LR
     S([Session starts]) -->|sync.sh| P[Pull the config repo]
     P --> W[Working session]
     W -->|Bash or PowerShell command| G[bash-guard.js]
+    W -->|Bash command| RT[rtk-rewrite.js]
     W -->|Edit or Write| F[format-on-edit.js]
     W -->|Prompt or idle| N[notify.js]
     W --> E([Session ends])
@@ -133,8 +140,9 @@ $ git status
 ├── agents/            subagents
 ├── commands/          slash commands
 ├── scripts/
-│   ├── hooks/         bash-guard, secret-gate, format-on-edit, notify, sync, push
-│   └── lib/           shared helpers and the secret scanner
+│   ├── hooks/         bash-guard, rtk-rewrite, secret-gate, format-on-edit, notify, sync, push
+│   ├── lib/           shared helpers, danger patterns (with tests) and the secret scanner
+│   └── rtk/           rtk config: telemetry off, gh excluded
 ├── docs/
 │   ├── assets/        banner and terminal image
 │   ├── bash-guard.md  how the command guard and secret scan work
@@ -165,4 +173,4 @@ The full details, including the permission lists, the hook behaviour and how I s
 
 My own work here is released under the [MIT License](LICENSE). It comes with no warranty, so read any hook that runs commands or pushes to git before you enable it.
 
-Parts of `agents/` and `commands/` started from [everything-claude-code](https://github.com/affaan-m/ECC) by Affaan Mustafa, which is also MIT licensed. Its notice is kept in [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md). The skills I use belong to their authors and are not included; [`skills/README.md`](skills/README.md) lists them with their licenses.
+Parts of `agents/` and `commands/verify.md` started from [everything-claude-code](https://github.com/affaan-m/ECC) by Affaan Mustafa, which is also MIT licensed. Its notice is kept in [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md). The skills I use belong to their authors and are not included; [`skills/README.md`](skills/README.md) lists them with their licenses.
