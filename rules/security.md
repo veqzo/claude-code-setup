@@ -1,3 +1,12 @@
+---
+paths:
+  - "**/*.{py,kt,kts,ts,tsx,js,jsx,mjs}"
+  - "**/Dockerfile*"
+  - "**/*compose*.{yml,yaml}"
+  - "**/.env.example"
+  - "**/.github/workflows/**"
+---
+
 # Security Guidelines
 
 Universal checks. Deep review (infra, MongoDB, Ktor, Discord, Phase) is the job of the `security-reviewer` agent.

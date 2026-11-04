@@ -25,7 +25,7 @@ When creating PRs:
 
 ## Working Practices
 
-- Plan first for larger tasks (planner agent or plan mode); small fixes need no plan.
+- Plan first for larger tasks (plan mode); small fixes need no plan.
 - Write or update tests with the change where a test is worthwhile (see testing rule).
-- Review larger changes before committing (code-reviewer agent or the `code-review` skill); fix CRITICAL and HIGH findings.
+- Review larger changes before committing (code-reviewer agent or the `review-changes` skill); fix CRITICAL and HIGH findings.
 - Never force-push shared branches. Pushes and merges need confirmation.
