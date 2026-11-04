@@ -1,9 +1,19 @@
 {
+  "syncClaudeAiSkills": false,
   "env": {
-    "CLAUDE_AUTOCOMPACT_PCT_OVERRIDE": "75"
+    "CLAUDE_AUTOCOMPACT_PCT_OVERRIDE": "75",
+    "CLAUDE_CODE_AUTO_COMPACT_WINDOW": "200k",
+    "MDB_MCP_READ_ONLY": "true",
+    "IMPECCABLE_NO_TELEMETRY": "1",
+    "IMPECCABLE_NO_UPDATE_CHECK": "1",
+    "RTK_TELEMETRY_DISABLED": "1",
+    "RTK_ONRAMP_DISABLED": "1"
+  },
+  "attribution": {
+    "commit": "",
+    "pr": ""
   },
   "permissions": {
-    "defaultMode": "auto",
     "allow": [
       "Bash(git status*)",
       "PowerShell(git status*)",
@@ -251,95 +261,55 @@
       "Bash(gh repo delete *)",
       "PowerShell(gh repo delete *)",
       "Bash(gh api * DELETE*)",
-      "PowerShell(gh api * DELETE*)"
+      "PowerShell(gh api * DELETE*)",
+      "Bash(rtk read *.env*)",
+      "Bash(rtk grep * *.env*)",
+      "Bash(rtk read ~/.ssh/*)",
+      "Bash(rtk read ~/.aws/*)",
+      "Bash(rtk git push --force*)",
+      "Bash(rtk git push -f*)",
+      "Bash(rtk git push * --force*)",
+      "Bash(rtk git push * -f)",
+      "Bash(rtk git push * -f *)",
+      "Bash(rtk git clean -fdx*)",
+      "Bash(rtk git clean -xdf*)",
+      "Bash(rtk curl * | sh*)",
+      "Bash(rtk curl * | bash*)",
+      "Bash(rtk wget * | sh*)",
+      "Bash(rtk wget * | bash*)",
+      "Bash(rtk docker volume rm *)",
+      "Bash(rtk docker volume prune*)",
+      "Bash(rtk docker system prune -a*)",
+      "Bash(rtk docker system prune * --volumes*)"
     ],
     "ask": [
-      "Bash(git push *)",
-      "PowerShell(git push *)",
-      "Bash(git reset --hard *)",
-      "PowerShell(git reset --hard *)",
-      "Bash(git clean *)",
-      "PowerShell(git clean *)",
-      "Bash(git branch -D *)",
-      "PowerShell(git branch -D *)",
-      "Bash(git rebase *)",
-      "PowerShell(git rebase *)",
-      "Bash(git restore *)",
-      "PowerShell(git restore *)",
       "Bash(git checkout -- *)",
       "PowerShell(git checkout -- *)",
       "Bash(git checkout .)",
       "PowerShell(git checkout .)",
-      "Bash(npm install *)",
-      "PowerShell(npm install *)",
-      "Bash(npm i *)",
-      "PowerShell(npm i *)",
-      "Bash(pnpm add *)",
-      "PowerShell(pnpm add *)",
-      "Bash(pnpm install *)",
-      "PowerShell(pnpm install *)",
-      "Bash(yarn add *)",
-      "PowerShell(yarn add *)",
-      "Bash(pip install *)",
-      "PowerShell(pip install *)",
-      "Bash(pip3 install *)",
-      "PowerShell(pip3 install *)",
-      "Bash(python -m pip install *)",
-      "PowerShell(python -m pip install *)",
-      "Bash(uv add *)",
-      "PowerShell(uv add *)",
-      "Bash(uv pip install *)",
-      "PowerShell(uv pip install *)",
-      "Bash(docker compose up *)",
-      "PowerShell(docker compose up *)",
-      "Bash(docker compose down *)",
-      "PowerShell(docker compose down *)",
-      "Bash(docker compose exec *)",
-      "PowerShell(docker compose exec *)",
-      "Bash(docker compose run *)",
-      "PowerShell(docker compose run *)",
-      "Bash(docker restart *)",
-      "PowerShell(docker restart *)",
-      "Bash(docker stop *)",
-      "PowerShell(docker stop *)",
-      "Bash(docker kill *)",
-      "PowerShell(docker kill *)",
-      "Bash(docker rm *)",
-      "PowerShell(docker rm *)",
-      "Bash(docker run *)",
-      "PowerShell(docker run *)",
-      "Bash(docker exec *)",
-      "PowerShell(docker exec *)",
-      "Bash(docker volume *)",
-      "PowerShell(docker volume *)",
-      "Bash(docker system prune *)",
-      "PowerShell(docker system prune *)",
+      "Bash(git stash drop*)",
+      "PowerShell(git stash drop*)",
+      "Bash(git stash clear*)",
+      "PowerShell(git stash clear*)",
+      "Bash(gh api * -f *)",
+      "Bash(gh api * -F *)",
+      "Bash(gh api * --field *)",
+      "Bash(gh api * --raw-field *)",
+      "Bash(gh api * --input *)",
       "Bash(mongosh *)",
       "PowerShell(mongosh *)",
       "Bash(mongo *)",
       "PowerShell(mongo *)",
-      "Bash(mongodump *)",
-      "PowerShell(mongodump *)",
       "Bash(mongorestore *)",
       "PowerShell(mongorestore *)",
-      "Bash(mongoexport *)",
-      "PowerShell(mongoexport *)",
       "Bash(mongoimport *)",
       "PowerShell(mongoimport *)",
-      "Bash(gh pr create *)",
-      "PowerShell(gh pr create *)",
       "Bash(gh pr merge *)",
       "PowerShell(gh pr merge *)",
       "Bash(gh pr close *)",
       "PowerShell(gh pr close *)",
-      "Bash(gh pr edit *)",
-      "PowerShell(gh pr edit *)",
-      "Bash(gh issue create *)",
-      "PowerShell(gh issue create *)",
       "Bash(gh issue close *)",
       "PowerShell(gh issue close *)",
-      "Bash(gh issue comment *)",
-      "PowerShell(gh issue comment *)",
       "Bash(gh release create *)",
       "PowerShell(gh release create *)",
       "Bash(gh api * POST*)",
@@ -354,10 +324,6 @@
       "PowerShell(phase run *)",
       "Bash(phase console*)",
       "PowerShell(phase console*)",
-      "Bash(curl *)",
-      "PowerShell(curl *)",
-      "Bash(wget *)",
-      "PowerShell(wget *)",
       "Bash(ssh *)",
       "PowerShell(ssh *)",
       "Bash(scp *)",
@@ -365,16 +331,19 @@
       "Bash(rsync *)",
       "PowerShell(rsync *)",
       "Bash(sudo *)",
-      "PowerShell(sudo *)",
-      "Bash(rm -rf *)",
-      "Bash(rm -fr *)",
-      "Bash(rm -r *)",
-      "PowerShell(Remove-Item *)",
-      "PowerShell(Invoke-WebRequest *)",
-      "PowerShell(Invoke-RestMethod *)"
-    ]
+      "PowerShell(sudo *)"
+    ],
+    "defaultMode": "auto"
   },
   "model": "sonnet",
+  "skillOverrides": {
+    "chrome-devtools-mcp:a11y-debugging": "name-only",
+    "chrome-devtools-mcp:chrome-devtools-cli": "name-only",
+    "chrome-devtools-mcp:cookie-debugging": "name-only",
+    "chrome-devtools-mcp:debug-optimize-lcp": "name-only",
+    "chrome-devtools-mcp:memory-leak-debugging": "name-only",
+    "chrome-devtools-mcp:troubleshooting": "name-only"
+  },
   "hooks": {
     "SessionStart": [
       {
@@ -420,6 +389,16 @@
             "timeout": 15
           }
         ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$HOME/.claude/scripts/hooks/rtk-rewrite.js\"",
+            "timeout": 10
+          }
+        ]
       }
     ],
     "PostToolUse": [
@@ -435,81 +414,48 @@
       }
     ]
   },
+  "disableAllHooks": false,
   "statusLine": {
     "type": "command",
     "command": "npx -y ccstatusline@2.2.30",
     "padding": 0
   },
   "enabledPlugins": {
-    "superpowers@superpowers-marketplace": true,
-    "code-review@claude-code-plugins": false,
-    "security-guidance@claude-code-plugins": false,
     "kotlin-lsp@claude-plugins-official": true,
-    "github@claude-plugins-official": false,
-    "unit-testing@claude-code-workflows": false,
-    "code-refactoring@claude-code-workflows": false,
-    "database-design@claude-code-workflows": false,
-    "application-performance@claude-code-workflows": false,
-    "backend-api-security@claude-code-workflows": false,
-    "python-development@claude-code-workflows": false,
-    "ui-ux-pro-max@ui-ux-pro-max-skill": false
+    "context7@claude-plugins-official": true,
+    "pyright-lsp@claude-plugins-official": true,
+    "typescript-lsp@claude-plugins-official": true,
+    "chrome-devtools-mcp@claude-plugins-official": true,
+    "session-report@claude-plugins-official": true
   },
   "extraKnownMarketplaces": {
-    "superpowers-marketplace": {
-      "source": {
-        "source": "github",
-        "repo": "obra/superpowers-marketplace"
-      }
-    },
-    "claude-code-plugins": {
-      "source": {
-        "source": "github",
-        "repo": "anthropics/claude-code"
-      }
-    },
-    "ponytail": {
-      "source": {
-        "source": "github",
-        "repo": "DietrichGebert/ponytail"
-      }
-    },
     "claude-plugins-official": {
       "source": {
         "source": "github",
         "repo": "anthropics/claude-plugins-official"
       }
-    },
-    "claude-code-workflows": {
-      "source": {
-        "source": "github",
-        "repo": "wshobson/agents"
-      }
-    },
-    "anthropic-agent-skills": {
-      "source": {
-        "source": "github",
-        "repo": "anthropics/skills"
-      }
-    },
-    "ui-ux-pro-max-skill": {
-      "source": {
-        "source": "github",
-        "repo": "nextlevelbuilder/ui-ux-pro-max-skill"
-      }
-    },
-    "superdesign": {
-      "source": {
-        "source": "github",
-        "repo": "superdesigndev/superdesign-skill"
-      }
+    }
+  },
+  "modelSettings": {
+    "claude-haiku-5-5": {
+      "effortLevel": "low"
     }
   },
   "autoUpdatesChannel": "latest",
   "theme": "dark",
   "agentPushNotifEnabled": true,
-  "disableAllHooks": false,
-  "attribution": {
-    "commit": "",
-    "pr": ""
+  "autoMode": {
+    "environment": [
+      "$defaults",
+      "Organization: personal developer. Primary use: software development (Kotlin/Ktor, Python/FastAPI, React) on Windows and macOS",
+      "Source control: github.com/<your-github-user> and all repositories under it",
+      "Secrets management: Phase (phase.dev). Secrets are injected via `phase run` or local .env files and are never committed",
+      "CI/CD deploy targets: Dokploy on a self-hosted VPS behind Traefik and Cloudflare DNS; Dokploy deploys from git pushes",
+      "Trusted web-research fetcher: the user's own self-hosted Scrapling MCP server (tools mcp__scrapling__*), used to read public web pages that block normal fetches",
+      "Sensitive remote targets: the production VPS (any ssh/scp/rsync target) and any MongoDB instance not running on localhost or in a local Docker container",
+      "Documentation lookup: Context7 (mcp.context7.com, Upstash) is a trusted docs service; sending library names and documentation questions there is expected. Never send source code, secrets or personal data",
+      "Local browser debugging: the chrome-devtools MCP drives a local Chrome against localhost dev servers and URLs the user named",
+      "Databases: the MongoDB MCP runs read-only (MDB_MCP_READ_ONLY=true) and is meant for localhost or local Docker MongoDB instances only"
+    ]
   }
 }
