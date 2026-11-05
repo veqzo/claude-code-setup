@@ -1,8 +1,10 @@
 # Third-party notices
 
+The skills in `plugin/skills/` have their own notices: each skill folder keeps its license file, and [`plugin/skills/THIRD_PARTY_NOTICES.md`](plugin/skills/THIRD_PARTY_NOTICES.md) lists them.
+
 ## everything-claude-code (ECC)
 
-Parts of `agents/` and `commands/` started from the everything-claude-code project and were adapted for this stack. The project is licensed under the MIT License, whose terms require this notice to be kept with copies and substantial portions.
+Parts of `plugin/agents/` and `plugin/commands/` started from the everything-claude-code project and were adapted for this stack. The project is licensed under the MIT License, whose terms require this notice to be kept with copies and substantial portions.
 
 - Upstream: https://github.com/affaan-m/ECC (formerly `everything-claude-code`)
 - License: MIT

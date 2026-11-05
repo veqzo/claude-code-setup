@@ -1,9 +1,16 @@
 # 📚 Reference
 
 > [!NOTE]
-> Details behind the [README](../README.md): every rule, agent, command and hook, the permission lists and how the sync works. For the command guard on its own, see [bash-guard.md](bash-guard.md).
+> Details behind the [README](../README.md): every rule, agent, command, skill and hook, the permission lists and how the sync works. For the command guard on its own, see [bash-guard.md](bash-guard.md). To install the setup, see [INSTALL.md](../INSTALL.md).
+
+The repo has two parts:
+
+- [`plugin/`](../plugin) is the plugin `veqzo-setup` (marketplace `veqzo`). It holds the skills, agents, `/verify`, the hooks and the band above the prompt. Install it with `claude plugin install`, and it updates itself.
+- [`setup/`](../setup) holds what goes into `~/.claude` itself and is yours after the install: `CLAUDE.md`, `rules/`, `settings.json` and the optional sync hooks. A plugin cannot ship rules, permissions or auto mode settings, which is why these are separate.
 
 ## 📏 Rules
+
+In [`setup/rules/`](../setup/rules). Copy only the ones that match your stack.
 
 | File | Loads | Content |
 |---|---|---|
@@ -22,6 +29,8 @@
 `security.md` and `testing.md` used to load in every session; scoping them to source files keeps them out of sessions that only touch docs or config. Dokploy adds the basic Traefik labels itself when a domain is configured in its Domains tab, so the rules tell Claude **not** to add them to compose files.
 
 ## 🤖 Agents
+
+In [`plugin/agents/`](../plugin/agents). With the plugin installed they show up as `veqzo-setup:<name>`.
 
 | Agent | Model | Tools | Use for |
 |---|---|---|---|
@@ -46,13 +55,27 @@ The other ten commands (`/plan`, `/build-fix`, `/e2e`, `/checkpoint`, `/orchestr
 
 ## 🧰 Skills
 
-This repository contains no skill files, because the skills I run are other people's work. [`skills/README.md`](../skills/README.md) lists them with their upstreams and licenses. On my own machines `skills/` is synced from a private copy.
+The plugin ships the 19 skills I use, in [`plugin/skills/`](../plugin/skills). They are other people's work. Each skill folder keeps its upstream license, and [`THIRD_PARTY_NOTICES.md`](../plugin/skills/THIRD_PARTY_NOTICES.md) lists the source path, commit and license of each one.
 
-`skills/synced/` is a bucket that Claude Desktop manages itself (docx, pdf, pptx, xlsx and so on). It is git-ignored and should not be edited by hand.
+| Skills | Upstream | License |
+|---|---|---|
+| `tdd`, `diagnosing-bugs`, `codebase-design`, `domain-modeling`, `prototype`, `research`, `grilling`, `writing-for-agents`, `review-changes` | [mattpocock/skills](https://github.com/mattpocock/skills) | MIT |
+| `grill-me`, `grill-with-docs`, `handoff`, `implement`, `to-spec`, `to-tickets`, `setup-matt-pocock-skills` (manual only) | [mattpocock/skills](https://github.com/mattpocock/skills) | MIT |
+| `impeccable` 4.8.0 | [pbakaus/impeccable](https://github.com/pbakaus/impeccable) | Apache-2.0 |
+| `frontend-design` | [anthropics/skills](https://github.com/anthropics/skills) | Apache-2.0 |
+| `apple-design` | [emilkowalski/skills](https://github.com/emilkowalski/skills) | MIT |
+
+`review-changes` is upstream's `code-review`, renamed so it does not clash with the built-in `/code-review`. Manual-only skills have `disable-model-invocation: true`, so their descriptions cost no context. Their `agents/openai.yaml` files carry the same setting for Codex (`allow_implicit_invocation: false`).
+
+How I keep them cheap:
+
+- Every model-invocable skill puts its description into each session. The whole plugin adds about 1.9k tokens per session (`claude plugin details veqzo-setup@veqzo`).
+- Plugin skills I never trigger by description are set to `"name-only"` under `skillOverrides` in `settings.json`.
+- `impeccable` runs its engine through the skill's own launcher. Its optional per-edit hook (`impeccable hooks on`) stays off; `rules/ui-design.md` says so explicitly.
 
 ## 🪝 Hooks
 
-All hooks are registered in `settings.json`. **`disableAllHooks` is the master switch**: while it is `true`, nothing below runs, including the sync hooks. Turn it to `false` when you want everything active.
+The guard, rtk, format and notify hooks come with the plugin ([`plugin/hooks/hooks.json`](../plugin/hooks/hooks.json), scripts in [`plugin/scripts/`](../plugin/scripts)). The two sync hooks are optional and go into `settings.json` ([`setup/settings.sync-hooks.json`](../setup/settings.sync-hooks.json)). **`disableAllHooks` in `settings.json` is the master switch**: while it is `true`, nothing below runs.
 
 | Event | Matcher | Script | What it does |
 |---|---|---|---|
@@ -76,7 +99,7 @@ Exit code `2` blocks the call and sends stderr to Claude. Any internal error exi
 - MongoDB `dropDatabase`
 - shell reads of real `.env` files: `cat`, `head`, `grep`, `sed`, `type`, `Get-Content`, `cp` and others, also wrapped as `rtk read .env` or `rtk grep KEY .env`. `.env.example`, `.env.sample`, `.env.template` and commands that only name the file (`git check-ignore .env`) stay allowed
 
-The rules live in `scripts/lib/danger-patterns.js` and have tests: `node --test scripts/lib/danger-patterns.test.js`.
+The rules live in `plugin/scripts/lib/danger-patterns.js` and have tests: `node --test plugin/scripts/lib/danger-patterns.test.js`.
 
 **Secret scan before `git commit`:** scans the staged diff, or, for `git add ... && git commit` and `commit -a`, the working tree plus untracked files. It detects AWS keys, GitHub tokens, Anthropic/OpenAI-style keys, Slack and Google keys, Discord bot tokens, Phase service tokens, private key blocks, connection strings with credentials, hardcoded `password/token/api_key = "..."` assignments, and committed `.env`, `*.pem`, `*.key`, SSH key files (`.env.example` is allowed). Reports show file, line and pattern name, **never the value**. An intentional test fixture can carry the comment `secret-scan:allow`.
 
@@ -97,7 +120,7 @@ A thin wrapper around `rtk hook claude`. rtk rewrites commands such as `git stat
 - **Ask rules keep their prompt.** If the command matches a `Bash(...)` ask rule in the user or project settings, it is passed through unchanged. Otherwise `git stash drop` would become `rtk git stash drop`, no longer match `Bash(git stash drop*)`, and run without confirmation.
 - **Fail open, quietly.** Missing rtk, a timeout (8 s) or any error exits `0` and the command runs as written. Telemetry is switched off through the environment.
 
-rtk itself leaves denied commands alone and only returns `allow` for commands that were already allowed. Every git, docker, curl and wget deny rule is mirrored with an `rtk ` prefix anyway, and `rtk read`/`rtk grep` on `.env*` files is denied. The config in `scripts/rtk/config.toml` turns telemetry off and excludes `gh`, whose `--json`/`--jq` output is already small.
+rtk itself leaves denied commands alone and only returns `allow` for commands that were already allowed. Every git, docker, curl and wget deny rule is mirrored with an `rtk ` prefix anyway, and `rtk read`/`rtk grep` on `.env*` files is denied. The config in `setup/scripts/rtk/config.toml` turns telemetry off and excludes `gh`, whose `--json`/`--jq` output is already small.
 
 ### Sync hooks
 
@@ -109,7 +132,11 @@ rtk itself leaves denied commands alone and only returns `allow` for commands th
 
 `push.sh` commits without a review step, which is why the whitelist and the secret scan matter.
 
-**Using these scripts yourself:** `sync.sh` and `push.sh` are written for my setup and will not work for you as they are. They hardcode my config repository (`SSH_URL` and `HTTPS_URL` in `sync.sh`, plus the repository named in the comments), the branch `master` (`BRANCH`), and the directory `$HOME/.claude` (`DIR`). Change those variables to your own repository, or do not register the two hooks in `settings.json`. Be careful with `push.sh`: it commits and pushes everything your `.gitignore` allows, so keep the whitelist and the secret gate in place. Do not modify or move these two scripts without checking both hook entries in `settings.json`.
+**Using these scripts yourself:** they carry no repository name. `sync.sh` reads it from `CLAUDE_CONFIG_REPO` (`owner/name`) in the `env` block of `settings.json`, and needs it only for the first clone on a new machine; later runs use the `origin` of `~/.claude`. `CLAUDE_CONFIG_BRANCH` changes the branch (default `master`). Use a **private** repo, and keep the whitelist `.gitignore` ([`setup/claude-dir.gitignore`](../setup/claude-dir.gitignore)) and the secret gate in place: `push.sh` commits and pushes everything the `.gitignore` allows. [INSTALL.md](../INSTALL.md) step 7.6 sets it up.
+
+### The band above the prompt
+
+The plugin also has a mod (`plugin/hooks/register.tsx`). It draws one line above the prompt: the sync state of `~/.claude` (behind, not pushed, local changes, the last hook failure), and the auto mode classifier blocks of the session with a **Clear** button. It also adds `/config-sync` and `/auto-denials`. Without a git repo in `~/.claude`, it shows only the blocks.
 
 ## 🔐 Permissions
 
@@ -174,34 +201,25 @@ No model ID is pinned, so the `opus` alias always resolves to the current Opus.
 
 ## 🔄 Sync across machines
 
-On my machines the config directory is itself a git repo (a private one, branch `master`). This repository is a cleaned copy of it. `.gitignore` is a **whitelist**: everything is ignored (`*`), and only the following is re-included:
-
-`.gitignore`, `.gitattributes`, `README.md`, `LICENSE`, `THIRD_PARTY_NOTICES.md`, `settings.json`, `CLAUDE.md`, `docs/**`, `scripts/**`, `rules/**`, `agents/**`, `commands/**`, `skills/**` (except `skills/synced/`), `hooks/**`
+On my machines `~/.claude` is itself a private git repo (branch `master`), and the public repo is built from it by a weekly export that scans for secrets and private values first. Its `.gitignore` is a **whitelist**: everything is ignored (`*`), and only config is re-included. The same file is [`setup/claude-dir.gitignore`](../setup/claude-dir.gitignore).
 
 Never synced (stay local): `.credentials.json`, `history.jsonl`, `projects/`, `sessions/`, `plugins/`, `cache/`, `backups/`, `file-history/`, `paste-cache/`, `shell-snapshots/`, `security/`, logs, and `contexts/`.
 
 A new top-level directory is **ignored by default**. If a new file does not show up in `git status`, add it to the whitelist (the `!dir/` and `!dir/**` pair, parent first). Check with `git check-ignore -v <path>`.
 
-Line endings: `* text=auto eol=lf`, `*.sh text eol=lf`, `*.cmd`/`*.bat` on CRLF, `*.png` binary.
-
 Do not add keys with secrets to the `env` block of `settings.json`, because that file is synced.
 
 ## 💻 Setting up a new machine
 
+The easy way: give [INSTALL.md](../INSTALL.md) to Claude Code. By hand:
+
 1. Install Git, Node.js and Claude Code. On Windows, install Git for Windows (Git Bash) so `bash` resolves to it and not the WSL stub.
-2. Set `git config --global user.name` and `user.email`, and make sure `git push` to the repo works (credential manager or SSH key).
-3. Clone the config repo into `~/.claude` (or let `sync.sh` bootstrap it).
+2. Install the plugin: `claude plugin marketplace add veqzo/claude-code-setup`, then `claude plugin install veqzo-setup@veqzo`.
+3. Copy `setup/CLAUDE.md`, the rules you want and `setup/settings.json` into `~/.claude`, and replace my stack, accounts and hosts with yours (`autoMode.environment` above all).
 4. Install the tools the hooks use if you want formatting: `ruff`, `ktlint`, and `prettier` inside each frontend project.
-   Optional: install [rtk](https://github.com/rtk-ai/rtk) (`winget install rtk-ai.rtk` or `brew install rtk`) and copy `scripts/rtk/config.toml` to rtk's config directory (`%APPDATA%\rtk\` on Windows, `~/Library/Application Support/rtk/` on macOS). Do not run `rtk init -g`: it edits `settings.json` and `CLAUDE.md` on its own. Restart the terminal so the new PATH is picked up.
-5. Sign in to the plugin marketplaces; plugins install themselves from `enabledPlugins`.
-6. Test the hooks before enabling them:
-   ```
-   echo '{"tool_input":{"command":"git push --force"}}' | node ~/.claude/scripts/hooks/bash-guard.js; echo $?   # must print 2
-   node ~/.claude/scripts/hooks/notify.js                                                                         # must play a sound
-   node --test ~/.claude/scripts/lib/danger-patterns.test.js                                                      # all tests pass
-   ```
-7. Set `disableAllHooks` to `false`.
-8. Register the Scrapling MCP once per machine. User-scope servers live in `~/.claude.json`, which is not synced. Check the URL path, transport and auth of your own server first, and pass any token through an environment variable or your secret manager, never inline in a committed file:
+   Optional: install [rtk](https://github.com/rtk-ai/rtk) (`winget install rtk-ai.rtk` or `brew install rtk`) and copy `setup/scripts/rtk/config.toml` to rtk's config directory (`%APPDATA%\rtk\` on Windows, `~/Library/Application Support/rtk/` on macOS). Do not run `rtk init -g`: it edits `settings.json` and `CLAUDE.md` on its own. Restart the terminal so the new PATH is picked up.
+5. Optional sync: see [INSTALL.md](../INSTALL.md) step 7.6.
+6. Register the Scrapling MCP if you host one. User-scope servers live in `~/.claude.json`, which is not synced. Pass any token through an environment variable or your secret manager, never inline in a committed file:
    ```
    claude mcp add --scope user --transport http scrapling https://<your-scrapling-host>/mcp
    claude mcp list    # scrapling must show as connected
@@ -213,7 +231,7 @@ Do not add keys with secrets to the `env` block of `settings.json`, because that
 - **New agent:** `agents/<name>.md` with `name` (equal to the filename), a one-sentence `description` (this is always loaded, keep it precise), `tools`, and `model` as an alias.
 - **New command:** `commands/<name>.md` with `description`, and `disable-model-invocation: true` if it should only run when typed.
 - **New permission:** add it to the right list in `settings.json`; remember `deny` and `ask` beat `allow`. Prefer specific patterns over `tool *`.
-- **New hook:** write a Node script in `scripts/hooks/`, read the JSON from stdin, exit `2` to block, never throw. Test it with a sample payload before registering it.
+- **New hook:** write a Node script in `scripts/hooks/` (in the plugin: `plugin/scripts/hooks/`, registered in `plugin/hooks/hooks.json` with `${CLAUDE_PLUGIN_ROOT}`), read the JSON from stdin, exit `2` to block, never throw. Test it with a sample payload before registering it.
 - **Check what the next sync would commit:** `git -C ~/.claude add -n -A`.
 - **Compare sizes** of the always-loaded part after changes; keep `CLAUDE.md` well below 200 lines.
 
@@ -225,6 +243,8 @@ Checked when the setup was built:
 - Frontmatter of all agents, commands and rules parses; agent models are valid aliases; every referenced script and agent exists.
 - 36 dry-run cases of the hook scripts in a throwaway repository, including empty and malformed stdin (all pass), plus the real command string from `settings.json` under Git Bash.
 - Secrets, history and logs are confirmed ignored by `git check-ignore`.
+- The plugin passes `claude plugin validate` and installs from the marketplace into an empty home; `claude plugin details` lists 19 skills plus `/verify`, 4 agents and 3 hook events. `bash-guard.js` blocks a force push from the plugin folder.
+- `sync.sh` skips without `CLAUDE_CONFIG_REPO`, clones with it, and later pulls through `origin`.
 - Tested on both machines, the Windows desktop and the MacBook: the hooks, the sync between them and the `notify.js` sound all work on macOS as well.
 
 ## ⚠️ Known limits and unverified assumptions
@@ -241,4 +261,6 @@ Checked when the setup was built:
 - A single file: `git -C ~/.claude checkout HEAD -- <path>` restores the last committed version (uncommitted changes to that file are lost).
 - Disable all automation immediately: set `"disableAllHooks": true` in `settings.json`.
 - Disable a single plugin: set its entry in `enabledPlugins` to `false`.
+- Remove the plugin: `claude plugin uninstall veqzo-setup@veqzo`.
+- Undo an install made with [INSTALL.md](../INSTALL.md): restore the `~/.claude.backup-<date>` folder it made.
 

@@ -1,0 +1,33 @@
+# Ignore everything — ~/.claude holds credentials, history, caches
+*
+
+# Re-include only what should sync
+!.gitignore
+!.gitattributes
+!README.md
+!settings.json
+!CLAUDE.md
+!scripts/
+!scripts/**
+!rules/
+!rules/**
+
+!agents/
+!agents/**
+!commands/
+!commands/**
+!skills/
+!skills/**
+skills/synced/
+!hooks/
+!hooks/**
+!.github/
+!.github/**
+!.claude-plugin/
+!.claude-plugin/**
+!mods/
+!mods/**
+mods/**/.claude-plugin/types/
+
+!_archive/
+!_archive/**

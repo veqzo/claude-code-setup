@@ -1,0 +1,16 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "veqzo",
+  "owner": {
+    "name": "veqzo"
+  },
+  "description": "The Claude Code setup veqzo uses every day: skills, subagents, guard hooks and a sync status band",
+  "plugins": [
+    {
+      "name": "veqzo-setup",
+      "description": "Skills, subagents, /verify, command guard and secret scan hooks, output compression with rtk, format on edit, and a band with sync status and auto mode blocks",
+      "source": "./plugin",
+      "category": "productivity"
+    }
+  ]
+}
