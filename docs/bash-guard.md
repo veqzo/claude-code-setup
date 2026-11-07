@@ -1,7 +1,7 @@
 # 🛡️ bash-guard.js
 
 > [!NOTE]
-> Part of [claude-code-setup](../README.md). The script is [`scripts/hooks/bash-guard.js`](../scripts/hooks/bash-guard.js), and the rest of the setup is described in the [reference](reference.md).
+> Part of [claude-code-setup](../README.md). The script is [`plugin/scripts/hooks/bash-guard.js`](../plugin/scripts/hooks/bash-guard.js), and the rest of the setup is described in the [reference](reference.md).
 
 `bash-guard.js` is a `PreToolUse` hook. Claude Code runs it before every Bash or PowerShell command, and passes the command to it as JSON on stdin. If the script exits with `0`, the command goes ahead. If it exits with `2`, the command is blocked and whatever the script wrote to stderr is sent back to Claude, so it can change course instead of just failing.
 
@@ -29,7 +29,7 @@ Any internal error also ends in exit `0`. A bug in the guard should never be abl
 
 ## 🚫 Job 1: dangerous commands
 
-The rules live in [`scripts/lib/danger-patterns.js`](../scripts/lib/danger-patterns.js).
+The rules live in [`plugin/scripts/lib/danger-patterns.js`](../plugin/scripts/lib/danger-patterns.js).
 
 | Rule | Catches | Hint sent to Claude |
 |---|---|---|
@@ -41,7 +41,7 @@ The rules live in [`scripts/lib/danger-patterns.js`](../scripts/lib/danger-patte
 | Destructive Docker cleanup | `docker system prune` with `-a`, `--all` or `--volumes`, and `docker volume rm` or `prune` | This deletes volumes, so ask the user |
 | Dropping a MongoDB database | `dropDatabase` | Ask the user to run it themselves |
 
-The rules have tests in [`scripts/lib/danger-patterns.test.js`](../scripts/lib/danger-patterns.test.js), including the cases that must stay allowed: `node --test scripts/lib/danger-patterns.test.js`.
+The rules have tests in [`plugin/scripts/lib/danger-patterns.test.js`](../plugin/scripts/lib/danger-patterns.test.js), including the cases that must stay allowed: `node --test plugin/scripts/lib/danger-patterns.test.js`.
 
 The hint matters as much as the block. Claude reads it and usually picks a safer command or asks me, instead of retrying the same thing in a different spelling.
 
@@ -52,7 +52,7 @@ When the command contains `git ... commit`, the guard works out what is about to
 - the staged diff, or
 - for `git add ... && git commit` and `commit -a`, everything changed in the working tree against `HEAD`, plus untracked files that are small (under 256 KB) and not binary.
 
-Only added lines are scanned, so old content and deleted lines are ignored. The scanner lives in [`scripts/lib/secret-scan.js`](../scripts/lib/secret-scan.js) and looks for:
+Only added lines are scanned, so old content and deleted lines are ignored. The scanner lives in [`plugin/scripts/lib/secret-scan.js`](../plugin/scripts/lib/secret-scan.js) and looks for:
 
 - AWS access key IDs, GitHub tokens, Anthropic and OpenAI style keys, Slack tokens, Google API keys, Discord bot tokens and Phase tokens
 - private key blocks
@@ -83,15 +83,15 @@ For an intentional test fixture, add the comment "secret-scan:allow" on that lin
 
 The guard fails open: if it breaks, the command runs. That is the right trade for an interactive session, where the permission rules are still in front of it and I am watching.
 
-[`secret-gate.js`](../scripts/hooks/secret-gate.js) uses the same scanner for the unattended auto-sync at session end and does the opposite: if it finds something or breaks, nothing is committed. Nobody is watching that commit, so the safe default is to do nothing.
+[`secret-gate.js`](../setup/scripts/hooks/secret-gate.js) uses the same scanner for the unattended auto-sync at session end and does the opposite: if it finds something or breaks, nothing is committed. Nobody is watching that commit, so the safe default is to do nothing.
 
 ## ⚠️ Limits
 
 - **It matches text, not intent.** If a blocked pattern merely appears in a command, even inside an `echo` or a commit message, the guard blocks it. I hit this while writing the tests for this very repo.
 - **It is not a sandbox.** Indirection such as variables, `sh -c "..."`, base64 or a script that runs the command for you gets past text matching. For real isolation use the operating system's sandbox.
 - **The secret scan is best effort.** It matches known token shapes and obvious assignments. It does not measure entropy, so an unusual secret format can slip through, and it only sees the lines being added. A secret that is already in your history needs rotating, not scanning.
-- **It only covers Bash and PowerShell calls.** That is where `git commit` happens, which is the case it was built for. The `Read` tool is covered by `Read(**/.env)` style deny rules in `settings.json` instead.
-- **rtk is a second spelling.** The guard sees the command as Claude wrote it, before `rtk-rewrite.js` runs. Claude can also write `rtk ...` itself, so the `.env` rule matches `rtk read` and `rtk grep`, and the destructive deny rules in `settings.json` are mirrored with an `rtk ` prefix.
+- **It only covers Bash and PowerShell calls.** That is where `git commit` happens, which is the case it was built for. The `Read` tool is covered by `Read(**/.env)` style deny rules in `setup/settings.json` instead.
+- **rtk is a second spelling.** The guard sees the command as Claude wrote it, before `rtk-rewrite.js` runs. Claude can also write `rtk ...` itself, so the `.env` rule matches `rtk read` and `rtk grep`, and the destructive deny rules in `setup/settings.json` are mirrored with an `rtk ` prefix.
 
 ## 🔧 Changing it
 
@@ -101,7 +101,7 @@ To add a rule, append an object to `RULES` in `danger-patterns.js` with a `name`
 node -e "
 const { spawnSync } = require('child_process');
 const command = 'git push --' + 'force';
-const r = spawnSync('node', ['scripts/hooks/bash-guard.js'], { input: JSON.stringify({ tool_input: { command } }), encoding: 'utf8' });
+const r = spawnSync('node', ['plugin/scripts/hooks/bash-guard.js'], { input: JSON.stringify({ tool_input: { command } }), encoding: 'utf8' });
 console.log(r.status, r.stderr);"
 ```
 

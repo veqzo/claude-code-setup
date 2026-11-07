@@ -1,0 +1,11 @@
+{
+  "name": "veqzo-setup",
+  "description": "Skills, subagents, /verify, command guard and secret scan hooks, output compression with rtk, format on edit, and a band with sync status and auto mode blocks",
+  "author": {
+    "name": "veqzo"
+  },
+  "homepage": "https://github.com/veqzo/claude-code-setup",
+  "repository": "https://github.com/veqzo/claude-code-setup",
+  "license": "MIT",
+  "types": "./types/index.d.ts"
+}

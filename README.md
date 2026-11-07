@@ -18,16 +18,34 @@
 </p>
 
 <p align="center">
+  <a href="INSTALL.md">Install</a> ·
   <a href="docs/reference.md">Reference</a> ·
   <a href="docs/bash-guard.md">Command guard</a> ·
-  <a href="skills/README.md">Skills</a> ·
+  <a href="plugin/skills/THIRD_PARTY_NOTICES.md">Skills</a> ·
   <a href="LICENSE">License</a>
 </p>
 
-My Claude Code configuration: rules, subagents, hooks and permissions for a backend-heavy stack (Kotlin with Ktor, Python with FastAPI, MongoDB, Docker on a small VPS) with a React and Tailwind frontend on the side. It is the `~/.claude` directory I use every day, cleaned up so it can be shared.
+My Claude Code configuration: skills, rules, subagents, hooks and permissions for a backend-heavy stack (Kotlin with Ktor, Python with FastAPI, MongoDB, Docker on a small VPS) with a React and Tailwind frontend on the side. It is the `~/.claude` directory I use every day, exported every week from my private copy without anything personal.
+
+## 🚀 Copy this setup
+
+Paste this into Claude Code on your machine:
+
+```
+Read https://raw.githubusercontent.com/veqzo/claude-code-setup/main/INSTALL.md and follow it to set up my machine.
+```
+
+The agent looks at your machine and projects, interviews you about your stack, shows a plan, backs up your current `~/.claude`, and then installs the plugin and writes a `CLAUDE.md`, rules and `settings.json` for your stack, not mine. Codex is supported too (skills and `AGENTS.md`). See [INSTALL.md](INSTALL.md).
+
+Only want the skills, agents and hooks? Install the plugin:
+
+```
+claude plugin marketplace add veqzo/claude-code-setup
+claude plugin install veqzo-setup@veqzo
+```
 
 > [!NOTE]
-> I'm publishing this to be read and borrowed from, not installed as it is. The permissions, plugin choices and some paths are mine, and you will want your own. It is an independent personal project and is not affiliated with or endorsed by Anthropic.
+> The permissions, auto mode entries and rules in `setup/` are written for my stack. Let the install agent adapt them, or read them before you copy them. This is an independent personal project and is not affiliated with or endorsed by Anthropic.
 
 ## 🎯 Why I built it
 
@@ -46,22 +64,27 @@ Two things followed from that:
 - **One setup, two operating systems.** The hooks are plain Node scripts that never go through a shell, and the permission rules exist for both the Bash and the PowerShell tool, so nothing depends on which machine I'm sitting at. I run it on both, and the hooks, the sync and the notification sound all work on each.
 - **An unattended push has to be safe.** A hook that publishes on its own is only as safe as what it is allowed to publish. The `.gitignore` is a whitelist (everything is ignored unless I list it), and every auto-sync commit goes through a secret scan first.
 
-This repository is a cleaned copy of that private one, without my skills and without anything personal.
+This repository is built from that private one by a weekly GitHub Action. It copies the config, removes private values, and blocks the export if it finds a secret, a private domain or a local user path.
 
 ## 📦 What's inside
 
 | | |
 |---|---|
-| 📌 `CLAUDE.md` | Short global preferences: stack, tooling, how I want GitHub handled. |
-| 📏 `rules/` | Eleven rules. Three general ones (coding style, git workflow, web-research escalation) are always loaded; eight are scoped with `paths:` (Python, Kotlin, MongoDB, Docker, frontend, UI design, security, testing) and load only when a matching file is touched. |
-| 🤖 `agents/` | Four subagents: code reviewer, read-only security reviewer, test-first guide and cleanup. Planning happens in plan mode, not in an agent. |
-| ⌨️ `commands/` | One slash command, `/verify`: build, types, lint, tests, secret scan and git status for the detected stack. |
-| 🪝 `scripts/` | Node hooks that guard commands, block reads of real `.env` files, scan for secrets, compress command output with rtk, format edited files and keep the config synced. |
-| ⚙️ `settings.json` | Permissions (deny, ask, allow), hook wiring, plugins and model settings. |
+| 🧩 `plugin/` | The plugin `veqzo-setup`: 19 skills, four subagents, `/verify`, the hooks and a band above the prompt. It installs with one command and updates itself. |
+| 🧰 `plugin/skills/` | The skills I use: Matt Pocock's engineering skills (TDD, debugging, design, grilling, specs), impeccable and frontend-design for UI work, apple-design. Each one keeps its upstream license. |
+| 🤖 `plugin/agents/` | Code reviewer, read-only security reviewer, test-first guide and cleanup. Planning happens in plan mode, not in an agent. |
+| ⌨️ `plugin/commands/` | `/verify`: build, types, lint, tests, secret scan and git status for the detected stack. |
+| 🪝 `plugin/scripts/` | Node hooks that guard commands, block reads of real `.env` files, scan commits for secrets, compress command output with rtk, format edited files and play a sound. |
+| 📌 `setup/CLAUDE.md` | Short global preferences: stack, tooling, how I want GitHub handled. |
+| 📏 `setup/rules/` | Eleven rules. Three general ones are always loaded; eight are scoped with `paths:` (Python, Kotlin, MongoDB, Docker, frontend, UI design, security, testing) and load only when a matching file is touched. |
+| ⚙️ `setup/settings.json` | Permissions (deny, ask, allow), auto mode environment, plugins and model settings. |
+| 🔄 `setup/scripts/` | Optional sync of `~/.claude` with your own private repo, with a secret gate before every auto-commit. |
 
 ## 💡 Ideas worth borrowing
 
 **Keep the always-loaded part small.** `CLAUDE.md` and the three general rules come to about 1.5k tokens. Anything stack-specific lives in a rule with a `paths:` list in its frontmatter, so the Python rules cost nothing while I'm working on a Kotlin service.
+
+**Ship skills as a plugin, settings as files.** A plugin can carry skills, agents, commands and hooks, and it updates itself. It cannot carry rules, permissions or auto mode settings, so those live in `setup/` and become your own files after the install.
 
 **Write hooks in Node, without a shell.** The same scripts run on Windows and macOS. `bash-guard.js` blocks the usual disasters (force pushes, recursive deletes of root-like paths, `curl | sh`, dropping a database) and scans the staged changes for secrets before every `git commit`. It also blocks shell reads of real `.env` files (`cat`, `grep`, `Get-Content`, `cp`, and the same through `rtk read`), while `.env.example` stays readable. It reports file, line and pattern, never the value. [How it works](docs/bash-guard.md).
 
@@ -134,43 +157,39 @@ $ git status
 
 ```
 .
-├── CLAUDE.md          global preferences, always loaded
-├── settings.json      permissions, hooks, plugins, model
-├── rules/             general rules, plus per-stack rules scoped with paths:
-├── agents/            subagents
-├── commands/          slash commands
-├── scripts/
-│   ├── hooks/         bash-guard, rtk-rewrite, secret-gate, format-on-edit, notify, sync, push
-│   ├── lib/           shared helpers, danger patterns (with tests) and the secret scanner
-│   └── rtk/           rtk config: telemetry off, gh excluded
-├── docs/
-│   ├── assets/        banner and terminal image
-│   ├── bash-guard.md  how the command guard and secret scan work
-│   └── reference.md   every rule, agent, command and hook in detail
-└── skills/            list of the skills I use (not included)
+├── INSTALL.md          prompt for an agent that installs this setup
+├── .claude-plugin/     marketplace "veqzo"
+├── plugin/             plugin "veqzo-setup"
+│   ├── skills/         19 third-party skills with their licenses
+│   ├── agents/         subagents
+│   ├── commands/       /verify
+│   ├── hooks/          hooks.json and the band above the prompt
+│   └── scripts/        bash-guard, rtk-rewrite, format-on-edit, notify, shared helpers with tests
+├── setup/              goes into ~/.claude, adapted by the install agent
+│   ├── CLAUDE.md       global preferences, always loaded
+│   ├── rules/          general rules, plus per-stack rules scoped with paths:
+│   ├── settings.json   permissions, auto mode, plugins, model
+│   ├── settings.sync-hooks.json, claude-dir.gitignore, scripts/   optional sync
+│   └── scripts/rtk/    rtk config: telemetry off, gh excluded
+└── docs/               reference, command guard, images
 ```
 
-## 🚀 Using it
+## 🧪 Try the guard
 
-Read before you copy. The rules and agents are the easiest parts to reuse; start there and cut whatever does not match your stack.
-
-Try the guard before you register it. Run this in a normal terminal, not through Claude with the hook enabled, because the guard would block the command that contains the test string. It should print `2`:
+Run this in a normal terminal, not through Claude with the hook enabled, because the guard would block the command that contains the test string. It should print `2`:
 
 ```sh
 node -e "
 const { spawnSync } = require('child_process');
 const command = 'git push --' + 'force';
-const r = spawnSync('node', ['scripts/hooks/bash-guard.js'], { input: JSON.stringify({ tool_input: { command } }), encoding: 'utf8' });
+const r = spawnSync('node', ['plugin/scripts/hooks/bash-guard.js'], { input: JSON.stringify({ tool_input: { command } }), encoding: 'utf8' });
 console.log(r.status);"
 ```
 
-> [!WARNING]
-> `sync.sh` and `push.sh` are written for my own setup and will not work for you as they are. They hardcode my private config repository, the branch `master` and the directory `$HOME/.claude`. Change those variables or leave the two hooks out of `settings.json`. `push.sh` commits and pushes everything your `.gitignore` allows, so keep the whitelist and the secret gate in place if you use it.
-
-The full details, including the permission lists, the hook behaviour and how I set up a new machine, are in [`docs/reference.md`](docs/reference.md).
+The full details, including the permission lists and the hook behaviour, are in [`docs/reference.md`](docs/reference.md).
 
 ## 📄 Credits and license
 
 My own work here is released under the [MIT License](LICENSE). It comes with no warranty, so read any hook that runs commands or pushes to git before you enable it.
 
-Parts of `agents/` and `commands/verify.md` started from [everything-claude-code](https://github.com/affaan-m/ECC) by Affaan Mustafa, which is also MIT licensed. Its notice is kept in [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md). The skills I use belong to their authors and are not included; [`skills/README.md`](skills/README.md) lists them with their licenses.
+Parts of `plugin/agents/` and `plugin/commands/verify.md` started from [everything-claude-code](https://github.com/affaan-m/ECC) by Affaan Mustafa, which is also MIT licensed. Its notice is kept in [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md). The skills in `plugin/skills/` belong to their authors and are redistributed under their licenses (MIT and Apache-2.0). Each skill folder keeps its license file, and [`plugin/skills/THIRD_PARTY_NOTICES.md`](plugin/skills/THIRD_PARTY_NOTICES.md) lists the upstream, commit and license of each one.

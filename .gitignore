@@ -1,27 +1,9 @@
-# Ignore everything — ~/.claude holds credentials, history, caches
-*
-
-# Re-include only what should sync
-!.gitignore
-!.gitattributes
-!README.md
-!THIRD_PARTY_NOTICES.md
-!LICENSE
-!settings.json
-!CLAUDE.md
-!scripts/
-!scripts/**
-!rules/
-!rules/**
-
-!agents/
-!agents/**
-!commands/
-!commands/**
-!docs/
-!docs/**
-!skills/
-!skills/**
-skills/synced/
-!hooks/
-!hooks/**
+# This is the public repo, not ~/.claude. The whitelist .gitignore for a synced
+# ~/.claude is setup/claude-dir.gitignore.
+.DS_Store
+Thumbs.db
+node_modules/
+*.log
+.env
+.env.*
+!.env.example

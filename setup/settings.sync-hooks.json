@@ -1,0 +1,28 @@
+{
+  "$comment": "Optional. Merge into the hooks block of ~/.claude/settings.json to sync ~/.claude with your own private repo; set CLAUDE_CONFIG_REPO (owner/name) in the env block.",
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$HOME/.claude/scripts/hooks/sync.sh\"",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$HOME/.claude/scripts/hooks/push.sh\"",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
+}
