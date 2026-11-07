@@ -19,6 +19,7 @@
 !skills/
 !skills/**
 skills/synced/
+skills/.trash/
 !hooks/
 !hooks/**
 !.github/
