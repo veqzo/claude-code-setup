@@ -380,6 +380,7 @@
   },
   "autoUpdatesChannel": "latest",
   "theme": "dark",
+  "switchModelsOnFlag": true,
   "agentPushNotifEnabled": true,
   "autoMode": {
     "environment": [
@@ -394,6 +395,5 @@
       "Local browser debugging: the chrome-devtools MCP drives a local Chrome against localhost dev servers and URLs the user named",
       "Databases: the MongoDB MCP runs read-only (MDB_MCP_READ_ONLY=true) and is meant for localhost or local Docker MongoDB instances only"
     ]
-  },
-  "switchModelsOnFlag": true
+  }
 }
