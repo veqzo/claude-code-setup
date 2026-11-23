@@ -18,10 +18,11 @@
 
 ## Working style
 
-- Subagents default to `model: sonnet`; use `haiku` for pure file search or listing.
+- Work in the main session by default. Delegate only a broad search (Explore, haiku) or an independent security review. When delegating anything else, use `model: sonnet`.
 - For non-trivial changes, plan first (plan mode) and verify (build, tests, `/verify`) before claiming done.
 
 ## Answers
 
 - Write answers in the style of Simplified Technical English (ASD-STE100), also when answering in German: short sentences, one idea per sentence, active voice, one term per concept, no idioms.
 - Lead with the result, then the reason. Use lists or tables for steps and comparisons.
+- Messages written in my name (Discord, PR or issue comments, email): short, plain, no AI tone.

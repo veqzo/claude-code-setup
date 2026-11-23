@@ -13,6 +13,7 @@ const { readInput } = require('../lib/hook-io')
 const TIMEOUT_MS = 20000
 const PRETTIER_EXTENSIONS = new Set(['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs', '.css'])
 const KOTLIN_EXTENSIONS = new Set(['.kt', '.kts'])
+const DEFAULT_RUST_EDITION = '2021'
 
 function findUp(startDir, names) {
   let dir = startDir
@@ -51,6 +52,25 @@ function localPrettier(dir) {
   return fs.existsSync(bin) ? bin : null
 }
 
+// rustfmt on a single file does not read Cargo.toml, so the edition must be passed.
+// A crate may inherit it (`edition.workspace = true`); then the workspace manifest further up has it.
+function rustEdition(dir) {
+  let manifest = findUp(dir, ['Cargo.toml'])
+  while (manifest) {
+    const match = /^\s*edition\s*=\s*"(\d{4})"/m.exec(fs.readFileSync(manifest, 'utf8'))
+    if (match) return match[1]
+    const parent = path.dirname(path.dirname(manifest))
+    if (parent === path.dirname(manifest)) break
+    manifest = findUp(parent, ['Cargo.toml'])
+  }
+  return DEFAULT_RUST_EDITION
+}
+
+function rustfmtArgs(file, dir) {
+  if (!findUp(dir, ['Cargo.toml'])) return null
+  return ['--edition', rustEdition(dir), file]
+}
+
 function main() {
   const input = readInput()
   const file = input.tool_input && input.tool_input.file_path
@@ -66,11 +86,18 @@ function main() {
     if (prettier) run(process.execPath, [prettier, '--write', file])
   } else if (KOTLIN_EXTENSIONS.has(ext) && projectUsesKtlint(dir)) {
     run('ktlint', ['-F', file])
+  } else if (ext === '.rs') {
+    const args = rustfmtArgs(file, dir)
+    if (args) run('rustfmt', args)
   }
 }
 
-try {
-  main()
-} catch {
-  // Never fail the session because of formatting.
+if (require.main === module) {
+  try {
+    main()
+  } catch {
+    // Never fail the session because of formatting.
+  }
 }
+
+module.exports = { rustEdition, rustfmtArgs }

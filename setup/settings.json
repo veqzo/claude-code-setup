@@ -1,13 +1,11 @@
 {
   "syncClaudeAiSkills": false,
   "env": {
-    "CLAUDE_AUTOCOMPACT_PCT_OVERRIDE": "75",
+    "CLAUDE_AUTOCOMPACT_PCT_OVERRIDE": "80",
     "CLAUDE_CODE_AUTO_COMPACT_WINDOW": "200k",
-    "MDB_MCP_READ_ONLY": "true",
     "IMPECCABLE_NO_TELEMETRY": "1",
     "IMPECCABLE_NO_UPDATE_CHECK": "1",
-    "RTK_TELEMETRY_DISABLED": "1",
-    "RTK_ONRAMP_DISABLED": "1"
+    "CLAUDE_CODE_EXPERIMENTAL_CODE_MODE": "1"
   },
   "attribution": {
     "commit": "",
@@ -261,26 +259,7 @@
       "Bash(gh repo delete *)",
       "PowerShell(gh repo delete *)",
       "Bash(gh api * DELETE*)",
-      "PowerShell(gh api * DELETE*)",
-      "Bash(rtk read *.env*)",
-      "Bash(rtk grep * *.env*)",
-      "Bash(rtk read ~/.ssh/*)",
-      "Bash(rtk read ~/.aws/*)",
-      "Bash(rtk git push --force*)",
-      "Bash(rtk git push -f*)",
-      "Bash(rtk git push * --force*)",
-      "Bash(rtk git push * -f)",
-      "Bash(rtk git push * -f *)",
-      "Bash(rtk git clean -fdx*)",
-      "Bash(rtk git clean -xdf*)",
-      "Bash(rtk curl * | sh*)",
-      "Bash(rtk curl * | bash*)",
-      "Bash(rtk wget * | sh*)",
-      "Bash(rtk wget * | bash*)",
-      "Bash(rtk docker volume rm *)",
-      "Bash(rtk docker volume prune*)",
-      "Bash(rtk docker system prune -a*)",
-      "Bash(rtk docker system prune * --volumes*)"
+      "PowerShell(gh api * DELETE*)"
     ],
     "ask": [
       "Bash(git checkout -- *)",
@@ -335,16 +314,10 @@
     ],
     "defaultMode": "auto"
   },
-  "model": "sonnet",
-  "skillOverrides": {
-    "chrome-devtools-mcp:a11y-debugging": "name-only",
-    "chrome-devtools-mcp:chrome-devtools-cli": "name-only",
-    "chrome-devtools-mcp:cookie-debugging": "name-only",
-    "chrome-devtools-mcp:debug-optimize-lcp": "name-only",
-    "chrome-devtools-mcp:memory-leak-debugging": "name-only",
-    "chrome-devtools-mcp:troubleshooting": "name-only"
-  },
+  "model": "opus",
+  "disableClaudeAiConnectors": true,
   "disableAllHooks": false,
+  "enableArtifact": false,
   "statusLine": {
     "type": "command",
     "command": "npx -y ccstatusline@2.2.30",
@@ -356,7 +329,7 @@
     "pyright-lsp@claude-plugins-official": true,
     "typescript-lsp@claude-plugins-official": true,
     "chrome-devtools-mcp@claude-plugins-official": true,
-    "session-report@claude-plugins-official": true,
+    "session-report@claude-plugins-official": false,
     "veqzo-setup@veqzo": true
   },
   "extraKnownMarketplaces": {
@@ -364,6 +337,12 @@
       "source": {
         "source": "github",
         "repo": "anthropics/claude-plugins-official"
+      }
+    },
+    "openai-codex": {
+      "source": {
+        "source": "github",
+        "repo": "openai/codex-plugin-cc"
       }
     },
     "veqzo": {
@@ -380,6 +359,8 @@
   },
   "autoUpdatesChannel": "latest",
   "theme": "dark",
+  "switchModelsOnFlag": true,
+  "remoteControlAtStartup": true,
   "agentPushNotifEnabled": true,
   "autoMode": {
     "environment": [
@@ -391,9 +372,7 @@
       "Trusted web-research fetcher: the user's own self-hosted Scrapling MCP server (tools mcp__scrapling__*), used to read public web pages that block normal fetches",
       "Sensitive remote targets: the production VPS (any ssh/scp/rsync target) and any MongoDB instance not running on localhost or in a local Docker container",
       "Documentation lookup: Context7 (mcp.context7.com, Upstash) is a trusted docs service; sending library names and documentation questions there is expected. Never send source code, secrets or personal data",
-      "Local browser debugging: the chrome-devtools MCP drives a local Chrome against localhost dev servers and URLs the user named",
-      "Databases: the MongoDB MCP runs read-only (MDB_MCP_READ_ONLY=true) and is meant for localhost or local Docker MongoDB instances only"
+      "Local browser debugging: the chrome-devtools MCP drives a local Chrome against localhost dev servers and URLs the user named"
     ]
-  },
-  "switchModelsOnFlag": true
+  }
 }

@@ -1,6 +1,6 @@
 ---
 name: code-reviewer
-description: Code review specialist for quality, security and maintainability in Python, Kotlin, Docker and React changes. Use after larger code changes, before merging.
+description: Code review specialist for quality, security and maintainability in Python, Kotlin, Docker and React changes. Use after larger code changes, before merging. Not for small diffs (use /code-review in the main session) and not for security-critical changes (use security-reviewer).
 tools: Read, Grep, Glob, Bash
 model: sonnet
 ---
