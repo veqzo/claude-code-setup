@@ -9,7 +9,7 @@ paths:
 
 # Security Guidelines
 
-Universal checks. Deep review (infra, MongoDB, Ktor, Discord, Phase) is the job of the `security-reviewer` agent.
+Universal checks. Deep review (infra, MongoDB, Ktor, Discord, OpenBao) is the job of the `security-reviewer` agent.
 
 ## Before Any Commit
 
@@ -23,7 +23,7 @@ Universal checks. Deep review (infra, MongoDB, Ktor, Discord, Phase) is the job 
 
 ## Secrets
 
-- Secrets come from the environment (injected by Phase or Dokploy), never from source or committed `.env` files.
+- Secrets come from the environment (injected from OpenBao or Dokploy), never from source or committed `.env` files.
 - Fail fast when a required secret is missing; never log secret values.
 - Real `.env*` files, keys and credential files are never read, printed or committed. Only `.env.example` is allowed.
 

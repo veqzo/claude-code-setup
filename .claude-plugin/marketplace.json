@@ -8,7 +8,7 @@
   "plugins": [
     {
       "name": "veqzo-setup",
-      "description": "Skills, subagents, /verify, command guard and secret scan hooks, output compression with rtk, format on edit, and a band with sync status and auto mode blocks",
+      "description": "Skills, subagents, /verify, command guard and secret scan hooks, format on edit, and a band with sync status and auto mode blocks",
       "source": "./plugin",
       "category": "productivity"
     }

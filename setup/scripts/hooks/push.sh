@@ -14,6 +14,7 @@ log() { printf '%s %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$*" >> "$LOG" 2>/dev/nu
 
 command -v git >/dev/null 2>&1 || exit 0
 [ "${CLAUDE_CODE_REMOTE:-}" = "true" ] && exit 0   # cloud session: pull only, never push
+[ "${CLAUDE_CONFIG_PULL_ONLY:-}" = "true" ] && exit 0
 [ -d "$DIR/.git" ] || exit 0   # repo not adopted on this machine yet
 
 cd "$DIR" 2>/dev/null || exit 0
@@ -33,9 +34,19 @@ if [ -e "$DIR/.git/index.lock" ]; then
   exit 0
 fi
 
-# Stage everything the .gitignore allows.
-# The whitelist .gitignore is what keeps credentials/local state out.
-git add -A 2>>"$LOG" || true
+# Paseo owns these skills. Leave their local changes out of the automatic commit.
+paseo_paths=(':(glob,icase)skills/paseo*' ':(glob,icase)skills/paseo*/**')
+paseo_excludes=(':(exclude,glob,icase)skills/paseo*' ':(exclude,glob,icase)skills/paseo*/**')
+if ! git diff --cached --quiet -- "${paseo_paths[@]}" 2>>"$LOG"; then
+  log "push skipped: staged Paseo changes or index check failed"
+  exit 0
+fi
+
+# The .gitignore whitelist keeps credentials and other local state out.
+if ! git add -A -- . "${paseo_excludes[@]}" 2>>"$LOG"; then
+  log "push skipped: staging failed"
+  exit 0
+fi
 
 # Nothing staged -> nothing to do
 if git diff --cached --quiet 2>/dev/null; then

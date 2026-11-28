@@ -14,7 +14,7 @@ paths:
 
 ## Test-First Where It Pays Off
 
-- For new logic and bug fixes, write a failing test first, make it pass with the minimal change, then refactor. The `tdd-guide` agent and the `tdd` skill help with this.
+- For new logic and bug fixes, write a failing test first, make it pass with the minimal change, then refactor.
 - For a bug fix, the failing test reproduces the bug before the fix.
 - Skip test-first for throwaway scripts, pure config and trivial glue.
 

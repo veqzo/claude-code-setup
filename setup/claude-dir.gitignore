@@ -5,6 +5,7 @@
 !.gitignore
 !.gitattributes
 !README.md
+!CHANGELOG.md
 !settings.json
 !CLAUDE.md
 !scripts/
@@ -30,5 +31,17 @@ skills/.trash/
 !mods/**
 mods/**/.claude-plugin/types/
 
-!_archive/
-!_archive/**
+!paseo/
+!paseo/**
+paseo/**/node_modules/
+!docker/
+!docker/**
+!templates/
+!templates/**
+!docs/
+!docs/**
+
+# Never track real env files, also inside the whitelisted directories above.
+.env
+.env.*
+!.env.example

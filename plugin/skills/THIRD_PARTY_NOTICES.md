@@ -1,6 +1,6 @@
 # Third-party skills
 
-Every skill in this folder is the work of its upstream authors. Each skill folder keeps the upstream license file (`LICENSE`, or `LICENSE.txt` for `frontend-design`). The copies here may be older or newer than upstream; the commit column is the upstream state the license files were taken from (2026-11-05).
+Every skill in this folder is the work of its upstream authors. Each skill folder keeps the upstream license file (`LICENSE`). The copies here may be older or newer than upstream; the commit column is the upstream state the license files were taken from (2026-11-05).
 
 | Skill | Upstream path | License | Changes in this copy |
 |---|---|---|---|
@@ -16,12 +16,10 @@ Every skill in this folder is the work of its upstream authors. Each skill folde
 | `tdd` | mattpocock/skills `skills/engineering/tdd` | MIT | none intended; files differ from the upstream commit |
 | `to-spec` | mattpocock/skills `skills/engineering/to-spec` | MIT | none |
 | `to-tickets` | mattpocock/skills `skills/engineering/to-tickets` | MIT | none intended; files differ from the upstream commit |
-| `grill-me` | mattpocock/skills `skills/productivity/grill-me` | MIT | none |
 | `grilling` | mattpocock/skills `skills/productivity/grilling` | MIT | none intended; files differ from the upstream commit |
 | `handoff` | mattpocock/skills `skills/productivity/handoff` | MIT | none intended; files differ from the upstream commit |
 | `writing-for-agents` | mattpocock/skills `skills/productivity/writing-for-agents` | MIT | none |
-| `apple-design` | [emilkowalski/skills](https://github.com/emilkowalski/skills) `skills/apple-design` | MIT | none |
-| `frontend-design` | [anthropics/skills](https://github.com/anthropics/skills) `skills/frontend-design` | Apache-2.0 | none |
+| `apple-design` | [emilkowalski/skills](https://github.com/emilkowalski/skills) `skills/apple-design` | MIT | `description` in the frontmatter shortened |
 | `impeccable` 4.8.0 | [pbakaus/impeccable](https://github.com/pbakaus/impeccable) `.claude/skills/impeccable` | Apache-2.0 | none intended; 3 files differ from the upstream commit; see `NOTICE.md` |
 
 Upstream commits:
@@ -36,4 +34,4 @@ Upstream commits:
 
 `impeccable/reference/ios.md` and `impeccable/reference/android.md` are derived from [ehmo/platform-design-skills](https://github.com/ehmo/platform-design-skills) (MIT). Its license is kept as `impeccable/LICENSE-platform-design-skills`, and impeccable's own `NOTICE.md` is kept unchanged.
 
-"Files differ" means the copy is not identical to the upstream commit above. The copies were taken earlier, and the only intended local change is the rename of `review-changes`. Compare with upstream before you assume a difference is deliberate.
+"Files differ" means the copy is not identical to the upstream commit above. The copies were taken earlier; intended local changes are listed in the table. Compare with upstream before you assume a difference is deliberate.

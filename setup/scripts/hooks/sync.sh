@@ -16,11 +16,23 @@ LOG="$DIR/sync-hook.log"
 
 log() { printf '%s %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$*" >> "$LOG" 2>/dev/null || true; }
 
+sync_agents() {
+  script="$DIR/scripts/agents/sync-agents.js"
+  if [ -f "$script" ]; then
+    if [ "${CLAUDE_CONFIG_PULL_ONLY:-}" = "true" ]; then
+      node "$script" --only agy >>"$LOG" 2>&1 || log "agent sync failed"
+    else
+      node "$script" >>"$LOG" 2>&1 || log "agent sync failed"
+    fi
+  fi
+}
+
 command -v git >/dev/null 2>&1 || exit 0
 mkdir -p "$DIR" 2>/dev/null || true
 
 # --- First run on this machine: adopt the repo into the existing ~/.claude ---
 if [ ! -d "$DIR/.git" ]; then
+  trap sync_agents EXIT
   if [ -z "$REPO" ]; then
     log "initial sync skipped: CLAUDE_CONFIG_REPO is not set"
     exit 0
@@ -28,8 +40,8 @@ if [ ! -d "$DIR/.git" ]; then
   SSH_URL="git@github.com:$REPO.git"
   HTTPS_URL="https://github.com/$REPO.git"
   tmp="$(mktemp -d 2>/dev/null)" || exit 0
-  if git clone --quiet "$SSH_URL" "$tmp/repo" 2>>"$LOG" || \
-     git clone --quiet "$HTTPS_URL" "$tmp/repo" 2>>"$LOG"; then
+  if git clone --quiet --branch "$BRANCH" "$SSH_URL" "$tmp/repo" 2>>"$LOG" || \
+     git clone --quiet --branch "$BRANCH" "$HTTPS_URL" "$tmp/repo" 2>>"$LOG"; then
     if mv "$tmp/repo/.git" "$DIR/.git" 2>>"$LOG"; then
       # Overwrite tracked files (settings.json, skills/, ...) with the repo
       # version; untracked local state (projects/, todos/, history) stays.
@@ -51,6 +63,7 @@ if [ "$current" != "$BRANCH" ]; then
   log "sync skipped: on branch $current, not $BRANCH"
   exit 0
 fi
+trap sync_agents EXIT
 
 # Cloud sessions only: fall back to the read-only CLAUDE_CONFIG_TOKEN when the
 # GitHub proxy does not serve this repo. Local clients never take this branch.

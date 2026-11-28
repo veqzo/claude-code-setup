@@ -1,0 +1,67 @@
+# Paseo host #2 on the VPS, deployed as a Dokploy compose service.
+#
+# - No ports and no Traefik labels: clients reach the daemon only through the
+#   end-to-end encrypted Paseo relay. Do not add a domain in Dokploy.
+# - Set the variables from .env.example in the Dokploy environment tab
+#   (source: OpenBao). Never commit a real .env file.
+# - `docker compose down -v` deletes both volumes: all sign-ins (Claude, agy,
+#   gh), the Paseo state and every checkout in /workspace.
+name: paseo-vps
+
+services:
+  paseo:
+    # The Dockerfile pins the base images and agent CLI versions.
+    build:
+      context: .
+    image: paseo-vps:local
+    container_name: paseo
+    restart: unless-stopped
+    environment:
+      # Fixed values, not interpolated, so the Dokploy environment cannot widen
+      # the listener or turn on the web UI. paseo/hosts/vps.jsonc has the same.
+      PASEO_LISTEN: 127.0.0.1:6767
+      PASEO_WEB_UI_ENABLED: "false"
+      PASEO_RELAY_ENABLED: "true"
+      TZ: ${TZ:-Europe/Berlin}
+      # Every agent in the container can read these values. Keep the token
+      # scopes small (see .env.example).
+      GH_TOKEN: ${GH_TOKEN:-}
+      CLAUDE_CONFIG_READ_TOKEN: ${CLAUDE_CONFIG_READ_TOKEN:-}
+      CLAUDE_CONFIG_BRANCH: ${CLAUDE_CONFIG_BRANCH:-master}
+      CLAUDE_CONFIG_PULL_ONLY: "true"
+      NTFY_URL: ${NTFY_URL:-}
+      NTFY_TOKEN: ${NTFY_TOKEN:-}
+      AGY_COMMAND: ${AGY_COMMAND:-agy}
+    volumes:
+      # Sign-ins, ~/.claude (this repo), ~/.paseo and agent worktrees.
+      - paseo-home:/home/paseo
+      # Project checkouts.
+      - paseo-workspace:/workspace
+    mem_limit: ${PASEO_MEM_LIMIT:-6g}
+    cpus: ${PASEO_CPUS:-3}
+    pids_limit: 4096
+    security_opt:
+      - no-new-privileges:true
+    # The entrypoint runs as root only to fix volume ownership (CHOWN,
+    # DAC_OVERRIDE, FOWNER) and to drop to the paseo user (SETUID, SETGID).
+    # tini (PID 1, root) needs KILL to forward signals to the paseo processes.
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - FOWNER
+      - KILL
+      - SETGID
+      - SETUID
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+volumes:
+  paseo-home:
+    name: paseo-home
+  paseo-workspace:
+    name: paseo-workspace

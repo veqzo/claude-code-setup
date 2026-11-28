@@ -1,0 +1,8 @@
+{
+  "id": "github-repo-access",
+  "name": "GitHub repository access",
+  "description": "Open GitHub token settings and check repository read access from this host.",
+  "requirements": {
+    "paseo": ">=0.17.5"
+  }
+}

@@ -1,0 +1,25 @@
+// Host #2: the Paseo container on the VPS (see docker/paseo-vps/).
+// Merged over paseo/config.base.jsonc. Keep only real differences here.
+//
+// Build it inside the container as the paseo user:
+//   docker exec -it --user paseo paseo \
+//     node /home/paseo/.claude/scripts/paseo/build-config.js --host vps
+{
+  "daemon": {
+    // Loopback inside the container. The compose file publishes no port and
+    // sets PASEO_LISTEN to the same value, so the env cannot widen it.
+    // All clients reach this host through the relay only.
+    "listen": "127.0.0.1:6767"
+  },
+
+  "features": {
+    // No browser UI on the server. Clients use the apps over the relay.
+    "webUi": { "enabled": false },
+
+    // Dictation and voice mode download and run a local speech model on the
+    // daemon host. The VPS has no GPU and a shared memory limit, so the
+    // Windows PC host does speech. Set both to true to use them here.
+    "dictation": { "enabled": false },
+    "voiceMode": { "enabled": false }
+  }
+}
