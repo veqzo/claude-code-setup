@@ -1,0 +1,4 @@
+[
+  { "event": "PreToolUse", "script": "bash-guard.js", "timeout": 60, "tool": "shell" },
+  { "event": "PostToolUse", "script": "format-on-edit.js", "timeout": 120, "tool": "edit" }
+]

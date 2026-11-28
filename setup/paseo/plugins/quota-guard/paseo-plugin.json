@@ -1,0 +1,8 @@
+{
+  "id": "quota-guard",
+  "name": "Quota guard",
+  "description": "Picks the active Google account for Antigravity agents, falls back between Gemini and Claude at a usage cap, and sends limit alerts.",
+  "requirements": {
+    "paseo": ">=0.17.5"
+  }
+}

@@ -1,0 +1,167 @@
+// Shared Paseo daemon config for every host.
+//
+// This file is JSONC (comments and trailing commas are allowed). The daemon
+// itself reads plain JSON only, so never copy this file to ~/.paseo/config.json.
+// Build the real file with:
+//   node ~/.claude/scripts/paseo/build-config.js --host <windows-pc|vps>
+// The build merges this file, then paseo/hosts/<host>.jsonc, then the keys the
+// daemon owns (auth hash, pluginsEnabled, installed plugins), and validates the
+// result against paseo/schema/paseo.config.v1.json.
+//
+// Merge rules (see scripts/paseo/build-config.js):
+// - Objects merge key by key. A later file wins.
+// - Arrays replace the earlier value. This repo owns daemon.agentProfiles.
+// - null deletes the key from the result (used to drop old providers).
+// - Strings may use ${HOME} and ${CLAUDE_DIR} (the root of this repo). No other
+//   variables are expanded, so no secret can leak in from the environment.
+// - Never put secrets here. daemon.auth and pluginsEnabled are rejected.
+{
+  "$schema": "https://paseo.sh/schemas/paseo.config.v1.json",
+  "version": 1,
+
+  "daemon": {
+    // Loopback only. Remote devices connect through the E2E relay, never
+    // through an open port. The VPS host file keeps this value too.
+    "listen": "127.0.0.1:6767",
+
+    // Paseo MCP tools (create agents, worktrees, schedules) for agents and for
+    // Claude Code sessions on this host.
+    "mcp": { "enabled": true, "injectIntoAgents": true },
+
+    // Usage meters in the sidebar. The quota-guard plugin also reads them.
+    "usage": { "enabled": true },
+
+    // Relay: end-to-end encrypted (Noise NK). The relay server only forwards
+    // ciphertext. requireProtectedSecurity refuses clients that cannot
+    // complete the protected handshake. Pair devices with `paseo daemon pair`.
+    "relay": { "enabled": true, "requireProtectedSecurity": true },
+
+    // Allow local work in the worktree. GitHub writes need the user's approval.
+    "appendSystemPrompt": "Work only inside your own worktree. Run local checks and commit on your branch. Ask for user approval before pushing or writing to GitHub. Leave production deployments to the user.",
+
+    // Profiles are named bundles that humans and agents pick by name.
+    // Roles: Claude plans, Gemini (Antigravity) implements and reviews.
+    // reviewer-claude is for security, data and release diffs.
+    // The provider "antigravity" uses the active Google account. The
+    // quota-guard plugin sets that account and switches to Claude when the
+    // account is over its cap.
+    "agentProfiles": [
+      {
+        "id": "planner",
+        "name": "planner",
+        "icon": "compass",
+        "provider": "claude",
+        "model": "claude-opus-5-5",
+        "modeId": "plan",
+        "thinkingOptionId": "high",
+        "notes": "Plans a change and writes the implementer brief. Reads code, edits nothing."
+      },
+      {
+        "id": "implementer",
+        "name": "implementer",
+        "icon": "hammer",
+        "provider": "antigravity",
+        "model": "gemini-4-hydrogen",
+        // "auto": edits and safe commands run without asking; agy asks before
+        // irreversible actions. Use only in a worktree.
+        "modeId": "auto",
+        "thinkingOptionId": "high",
+        "notes": "Implements a brief with tests and commits in its worktree. Pushes its branch and opens a PR with user approval."
+      },
+      {
+        "id": "implementer-fast",
+        "name": "implementer-fast",
+        "icon": "wrench",
+        "provider": "antigravity",
+        "model": "gemini-3.8-flash",
+        "modeId": "auto",
+        "thinkingOptionId": "medium",
+        "notes": "Small, well-defined tasks (one or two files, clear test). Same rules as implementer."
+      },
+      {
+        "id": "implementer-claude",
+        "name": "implementer-claude",
+        "icon": "feather",
+        "provider": "claude",
+        "model": "claude-sonnet-5-5",
+        "modeId": "acceptEdits",
+        "thinkingOptionId": "medium",
+        "notes": "Manual fallback when both Google accounts are over their caps. Same rules as implementer."
+      },
+      {
+        // Default reviewer. Gemini saves Claude quota. "plan" is read-only.
+        "id": "reviewer",
+        "name": "reviewer",
+        "icon": "eye",
+        "provider": "antigravity",
+        "model": "gemini-4-hydrogen",
+        "modeId": "plan",
+        "thinkingOptionId": "high",
+        "notes": "Independent review of a diff: correctness, missing tests, unnecessary complexity. Read-only."
+      },
+      {
+        // For important diffs (security, data, releases) or a second opinion.
+        "id": "reviewer-claude",
+        "name": "reviewer-claude",
+        "icon": "shield",
+        "provider": "claude",
+        "model": "claude-sonnet-5-5",
+        "modeId": "plan",
+        "thinkingOptionId": "medium",
+        "notes": "Independent review of important diffs. Same checks as reviewer. Read-only."
+      }
+    ]
+  },
+
+  "agents": {
+    "providers": {
+      // One Antigravity provider for both Google accounts. The app data
+      // directory holds the sign-in and conversations. This default is
+      // account A, so agents still work without the quota-guard plugin.
+      // Force file storage so both account directories keep separate sign-ins.
+      // SSH_CONNECTION selects the remote OAuth flow for interactive logins.
+      "antigravity": {
+        "env": {
+          "ANTIGRAVITY_HOME": null,
+          "AGY_CLI_FORCE_FILE_TOKEN_STORAGE": "1",
+          "SSH_CONNECTION": "paseo"
+        }
+      },
+
+      // Codex: temporary (free ChatGPT Plus month). The trial ends on
+      // 2026-12-12. Then set enabled to false, drop the Codex part of
+      // scripts/agents/sync-agents.js and delete scripts/agents/codex-extra.md.
+      "codex": { "enabled": true },
+
+      // Providers that are not part of this setup.
+      "copilot": { "enabled": false },
+      "opencode": { "enabled": false },
+      "pi": { "enabled": false },
+      "omp": { "enabled": false },
+
+      // Removed: the old local Oh My Pi worker.
+      "omp-worker": null
+    },
+
+    // Titles, branch names and commit messages: use Gemini Flash first so this
+    // small work does not use Claude quota.
+    "metadataGeneration": {
+      "providers": [
+        { "provider": "antigravity", "model": "gemini-3.8-flash" },
+        { "provider": "claude", "model": "claude-haiku-5-5" }
+      ]
+    }
+  },
+
+  // Custom plugin from this repo. It loads only after you turn on
+  // "pluginsEnabled" yourself (Desktop: Settings > Plugins). The build never
+  // changes that switch.
+  "plugins": {
+    "quota-guard": {
+      "source": "directory",
+      "path": "${CLAUDE_DIR}/paseo/plugins/quota-guard"
+    }
+  },
+
+  "log": { "level": "info" }
+}

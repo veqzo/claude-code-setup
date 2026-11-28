@@ -31,7 +31,7 @@ Database-agnostic note: MongoDB is the default. If the data is strongly relation
 - Never pass user-controlled JSON as a filter. Whitelist fields, force expected types (a string, not `{"$ne": null}`), and never allow user input into `$where`, `$function`, `$accumulator` or `$regex` without escaping and limits (ReDoS).
 - Enable authentication (`--auth`/`MONGO_INITDB_ROOT_USERNAME`), create per-application users with least-privilege roles on one database; do not use the root user in the app.
 - Never expose port 27017 to the internet. In Docker Compose, do not publish the port (use an internal network); if remote access is unavoidable, bind to localhost and use a tunnel or firewall rule. Use TLS for any remote connection.
-- Connection strings and passwords come from the environment (Phase / Dokploy), never from the repo, and are never logged. Rotate credentials that leaked.
+- Connection strings and passwords come from the environment (OpenBao / Dokploy), never from the repo, and are never logged. Rotate credentials that leaked.
 - Backups (`mongodump` or volume snapshots) must be tested by restoring; keep them off the same disk.
 
 ## Operations

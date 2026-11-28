@@ -12,7 +12,8 @@ const PATTERNS = [
   { name: 'Slack token', re: /\bxox[abprs]-[A-Za-z0-9-]{10,}\b/ },
   { name: 'Google API key', re: /\bAIza[0-9A-Za-z_-]{35}\b/ },
   { name: 'Discord bot token', re: /\b[MNO][A-Za-z0-9_-]{23,27}\.[A-Za-z0-9_-]{6}\.[A-Za-z0-9_-]{27,}\b/ },
-  { name: 'Phase service token', re: /\bpss_(?:service|user):v\d+:[A-Za-z0-9+/=:_-]{20,}/ },
+  { name: 'OpenBao token', re: /\b[sbr]\.(?=[A-Za-z0-9]*\d)(?=[A-Za-z0-9]*[A-Z])[A-Za-z0-9]{24,}\b/ },
+  { name: 'Phase service token (legacy)', re: /\bpss_(?:service|user):v\d+:[A-Za-z0-9+/=:_-]{20,}/ },
   { name: 'private key block', re: /-----BEGIN (?:RSA |EC |DSA |OPENSSH |ENCRYPTED |PGP )?PRIVATE KEY(?: BLOCK)?-----/ },
   { name: 'connection string with credentials', re: /\b(?:mongodb(?:\+srv)?|postgres(?:ql)?|mysql|redis|amqp):\/\/[^\s:@/'"]+:[^\s@/'"]{3,}@/i },
 ]

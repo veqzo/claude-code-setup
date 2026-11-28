@@ -1,0 +1,9 @@
+// Host #1: the Windows 11 PC (Paseo desktop app, native Windows, no WSL).
+// Merged over paseo/config.base.jsonc. Keep only real differences here.
+{
+  "daemon": {
+    // The desktop app connects on loopback. Phone, iPad and MacBook use the
+    // relay. Do not change this to 0.0.0.0.
+    "listen": "127.0.0.1:6767"
+  }
+}

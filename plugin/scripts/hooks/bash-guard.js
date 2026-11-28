@@ -4,12 +4,12 @@
 // PreToolUse hook for Bash and PowerShell.
 //  1. Blocks dangerous commands that slip past the permission rules.
 //  2. Before `git commit`, scans the changes about to be committed for secrets.
-// Exit 2 blocks the call and sends stderr to the model. Any internal error exits 0
-// so a bug in this guard never locks the session.
+// The hook adapter sends the denial in each provider's format. Internal errors
+// leave the decision to the provider so a guard bug never locks the session.
 
 const fs = require('fs')
-const { execFileSync } = require('child_process')
-const { readInput, block } = require('../lib/hook-io')
+const { execHookFile } = require('../lib/hook-exec')
+const { readInput, block, pass } = require('../lib/hook-io')
 const { findDanger } = require('../lib/danger-patterns')
 const { scanDiff, scanLines, forbiddenFileFinding } = require('../lib/secret-scan')
 
@@ -20,7 +20,7 @@ const isGitCommit = (c) => /\bgit\b[^\n;&|]*\bcommit\b/.test(c)
 const stagesEverything = (c) => /\bgit\b[^\n;&|]*\badd\b/.test(c) || /\bcommit\b[^\n;&|]*\s-[a-zA-Z]*a/.test(c) || /\bcommit\b[^\n;&|]*\s--all\b/.test(c)
 
 function git(args, cwd) {
-  return execFileSync('git', args, { cwd, encoding: 'utf8', maxBuffer: 32 * 1024 * 1024, timeout: 15000, stdio: ['ignore', 'pipe', 'ignore'] })
+  return execHookFile('git', args, { cwd, encoding: 'utf8', maxBuffer: 32 * 1024 * 1024, timeout: 15000, stdio: ['ignore', 'pipe', 'ignore'] })
 }
 
 function hasHead(cwd) {
@@ -62,32 +62,31 @@ function collectFindings(command, cwd) {
   ]
 }
 
-function main() {
-  const input = readInput()
+function main(input) {
   const command = input.tool_input && input.tool_input.command
-  if (typeof command !== 'string' || !command) return
+  if (typeof command !== 'string' || !command) return pass(input, 'PreToolUse')
 
   const danger = findDanger(command)
-  if (danger) block([`Blocked by bash-guard: ${danger.name}.`, danger.hint])
+  if (danger) return block([`Blocked by bash-guard: ${danger.name}.`, danger.hint], input)
 
-  if (!isGitCommit(command)) return
+  if (!isGitCommit(command)) return pass(input, 'PreToolUse')
   let findings = []
   try {
     findings = collectFindings(command, input.cwd || process.cwd())
   } catch {
-    return
+    return pass(input, 'PreToolUse')
   }
-  if (findings.length === 0) return
-  block([
+  if (findings.length === 0) return pass(input, 'PreToolUse')
+  return block([
     'Blocked by bash-guard: possible secrets in the changes to be committed (values are not shown):',
     ...findings.slice(0, 20).map((f) => `  - ${f.file}${f.line ? `:${f.line}` : ''}  ${f.name}`),
-    'Remove them, load them from environment variables (Phase/.env), and rotate any secret that was ever pushed.',
+    'Remove them, load them from environment variables (OpenBao/.env), and rotate any secret that was ever pushed.',
     'For an intentional test fixture, add the comment "secret-scan:allow" on that line.',
-  ])
+  ], input)
 }
 
 try {
-  main()
+  main(readInput())
 } catch (error) {
   process.stderr.write(`bash-guard internal error (ignored): ${error && error.message}\n`)
 }
